@@ -16,6 +16,11 @@ import (
 
 type EtcdConfig struct {
 	Etcdcluster      string `json:etcd server地址`
+	KeyFile   	     string
+	CertFile         string
+	CAFile           string
+	Username         string
+	Password         string
 	Nodenetwork      string `json:node network`
 	Alreadyusedip    string `json:container AvailableIp`
 	Containernetwork string `json:containernetr`
@@ -28,6 +33,8 @@ type IpamConfig struct {
 	Name       string `json:"name"`
 	CNIVersion string `json:"cniVersion"`
 }
+
+
 
 func (IpamS *IpamConfig) Load(bytes []byte) error {
 	err := json.Unmarshal(bytes, IpamS)

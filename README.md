@@ -35,3 +35,7 @@
 3. 首先进行一次IP初始化来确定容器IP的起始和结束范围
 `tdipam -init init -start 10.0.0.140 -end 10.0.0.150 -subnet 10.0.0.140/17 -gateway 10.0.0.254 -config /etc/cni/net.d/10-macvlan.conf `
 
+
+###参考
+https://github.com/containernetworking/plugins
+https://github.com/containernetworking/cni/blob/master/SPEC.md

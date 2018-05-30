@@ -2,7 +2,8 @@
 [![Windows Build Status](https://ci.appveyor.com/api/projects/status/kcuubx0chr76ev86/branch/master?svg=true)](https://ci.appveyor.com/project/cni-bot/plugins/branch/master)
 
 # 10-macvlan.conf 配置文件解释
-```{
+```
+{
         "name": "macvlannet",   
         "type": "macvlan",
         "master": "ens33",
@@ -18,6 +19,6 @@
                 "routes": "/prod/routes/", //在etcd中路由key路劲 
                 "dns": "/prod/dns/" //在etcd中dns服务器key路劲 
         }
-}```
+}
 
 

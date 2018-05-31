@@ -3,32 +3,30 @@ package main
 import (
 	"github.com/containernetworking/cni/pkg/types"
 	"strings"
-)
+	)
 
-func GetDns(dnsEtcdConfig *map[string]string, DnsRoad *IpamConfig) types.DNS {
+func GetDns(dnsEtcdConfig *map[string]string) types.DNS {
 
-	var dns types.DNS
-	dns = types.DNS{}
+	dns := types.DNS{}
+	for k,v := range *dnsEtcdConfig {
+		if strings.Contains(k,"domain"){
+			dns.Domain = v
+		}
 
-	if _, ok := (*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"domain"]; ok {
-		dns.Domain = (*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"domain"]
+		if strings.Contains(k,"nameservers"){
+			dns.Nameservers = append(dns.Nameservers,v)
+		}
+
+		if strings.Contains(k,"search"){
+			dns.Search = append(dns.Search,v)
+		}
+
+		if strings.Contains(k,"options"){
+			dns.Options= append(dns.Options,v)
+		}
 
 	}
-	if _, ok := (*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"nameservers"]; ok {
-		var nameservers []string = strings.Split((*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"nameservers"], ",")
-		dns.Nameservers = nameservers
 
-	}
-
-	if _, ok := (*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"search"]; ok {
-		var search []string = strings.Split((*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"search"], ",")
-		dns.Search = search
-	}
-
-	if _, ok := (*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"options"]; ok {
-		var options []string = strings.Split((*dnsEtcdConfig)[DnsRoad.Ipam.Dns+"options"], ",")
-		dns.Options = options
-	}
 	return dns
 
 }

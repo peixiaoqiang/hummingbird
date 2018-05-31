@@ -12,13 +12,14 @@ import (
 	"strings"
 	"flag"
 		"io/ioutil"
-	)
+	"strconv"
+)
 
 type EtcdConfig struct {
 	Etcdcluster      string `json:etcd server地址`
-	KeyFile   	     string
-	CertFile         string
-	CAFile           string
+	Keyfile   	     string `key`
+	Certfile         string `cartfile`
+	Cafile           string `cafile`
 	Username         string
 	Password         string
 	Nodenetwork      string `json:node network`
@@ -53,10 +54,12 @@ func main(){
 	Config := IpamConfig{}
 	//用来初始化etcd里中的配置项，如果默认不用来初始化IP，将执行正常分配IP的流程
 	init := flag.String("init","","init")
-	RangeStart := flag.String("start","","172.20.0.140")
-	RangeEnd := flag.String("end","","172.20.0.150")
-	SubNet := flag.String("subnet","","172.20.0.140/17")
-	GateWay := flag.String("gateway","","172.20.127.254")
+	RangeStart := flag.String("start","","172.0.0.140")
+	RangeEnd := flag.String("end","","172.0.0.150")
+	SubNet := flag.String("subnet","","172.0.0.140/17")
+	GateWay := flag.String("gateway","","172.0.127.254")
+	Nameservrs := flag.String("nameservers","","8.8.8.8,233.5.5.5")
+	DefaultRoute := flag.String("defaultroute","","172.0.127.254,0.0.0/0")
 	ConfiFile := flag.String("config","","/etc/cni/net.d/10-macvlan.conf")
 	flag.Parse()
 	if *init == "init"{
@@ -89,7 +92,7 @@ func main(){
 
 		_, _, err := net.ParseCIDR(*SubNet)
 		if err !=nil {
-			log.Fatal("Incorrect SubNet SubNet")
+			log.Fatal("Incorrect SubNet address")
 		}else{
 			err := Cli.setKey(Config.Ipam.Containernetwork,"SubNet",*SubNet)
 			if err != nil{
@@ -106,6 +109,36 @@ func main(){
 				log.Fatalf("Create key GateWay failure")
 			}
 		}
+
+		if len(*Nameservrs) > 0 {
+			nameservers := strings.Split(*Nameservrs, ",")
+			for i,servers := range nameservers{
+				if net.ParseIP(servers) != nil {
+					Cli.setKey(Config.Ipam.Dns,strconv.Itoa(i),servers)
+				} else{
+				log.Fatalf("Create key nameservers failure")
+				}
+			}
+		}
+
+		if len(*DefaultRoute) > 0 {
+			defaultroute := strings.Split(*DefaultRoute, ",")
+			_, _, err := net.ParseCIDR(defaultroute[1])
+			if err !=nil {
+				log.Fatal("Incorrect DefaultRoute address ")
+			}
+			gw := net.ParseIP(defaultroute[0])
+			if gw == nil {
+				log.Fatalf("Incorrect gateway address")
+			}
+			err = Cli.setKey(Config.Ipam.Dns,defaultroute[1],defaultroute[0])
+			if err != nil{
+				log.Fatalf("Create key DefaultRoute failure")
+			}
+
+
+		}
+
 
 	}
 	skel.PluginMain(cmdAdd, cmdDel, version.All)
@@ -128,13 +161,6 @@ func cmdAdd(args *skel.CmdArgs) error {
 	//连接etcd
 	Cli := Config.etcdConn()
 
-	//NodeRang := Cli.getKey(Config.Ipam.Nodenetwork)
-	//err := IsKeyExist(NodeRang,Config.Ipam.Nodenetwork)
-	//
-	//if err != nil{
-	//	log.Println(err)
-	//	os.Exit(-1)
-	//}
 	ContainerRange := Cli.getKey(Config.Ipam.Containernetwork)
 	err := IsKeyExist(ContainerRange, Config.Ipam.Containernetwork)
 	if err != nil {
@@ -162,7 +188,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 			AvailableIp = net.ParseIP(existIp)
 			err = Cli.setKey(Config.Ipam.Alreadyusedip, AvailableIp.String(), args.ContainerID)
 			if err != nil {
-				log.Println(err)
+				log.Fatal(err)
 			}
 		}
 	}
@@ -178,7 +204,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	//获取目前可用的IP地址
 	IpList, err := Hosts((*ContainerRange)[Config.Ipam.Containernetwork+"SubNet"])
 	if err != nil {
-		log.Println("IP地址范围错误")
+		log.Fatal("IP地址范围错误")
 	}
 
 	//如果etcd中不存在IP则分配IP
@@ -194,13 +220,13 @@ func cmdAdd(args *skel.CmdArgs) error {
 				AvailableIp = Ip
 				err = Cli.setKey(Config.Ipam.Alreadyusedip+"podname/", podName, Ip.String())
 				if err != nil {
-					log.Println(err)
+					log.Fatal(err)
 				}
 				break
 			}
 		}
 		if len(AvailableIp.String()) <= 0 {
-			log.Println("没有可用Ip")
+			log.Fatal("没有可用Ip")
 		}
 	}
 	//返回cni相关
@@ -217,17 +243,11 @@ func cmdAdd(args *skel.CmdArgs) error {
 	result.IPs = append(result.IPs, IPs)
 	//获取dns配置
 	dnsEtcdConfig := Cli.getKey(Config.Ipam.Dns)
-	result.DNS = GetDns(dnsEtcdConfig, &Config)
+	result.DNS = GetDns(dnsEtcdConfig)
 
 	//自定义容器路由规则
-	//routeEtcdConfig := Cli.getKey(Config.Ipam.Routes)
-	//GetRoute(routeEtcdConfig, &Config)
-	//_, dstmask, err := net.ParseCIDR("0.0.0.0/0")
-	//Routes := &types.Route{}
-	//Routes.GW = nil
-	//Routes.Dst.IP = dstmask.IP
-	//Routes.Dst.Mask = dstmask.Mask
-	//result.Routes = append(result.Routes,Routes)
+	routeEtcdConfig := Cli.getKey(Config.Ipam.Routes)
+	result.Routes = GetRoute(routeEtcdConfig)
 	return types.PrintResult(result, Config.CNIVersion)
 
 }

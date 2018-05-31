@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 	"time"
-	)
+		)
 
 type EtcdHelper struct {
 	HeaderTimeoutPerRequest time.Duration
@@ -19,13 +19,12 @@ type EtcdHelper struct {
 func (IpamS *IpamConfig) etcdConn() (EtcdConn EtcdHelper) {
 
 	//tlsInfo := transport.TLSInfo{
-	//	CertFile: IpamS.Ipam.CertFile,
-	//	KeyFile:  IpamS.Ipam.KeyFile,
-	//	TrustedCAFile:   IpamS.Ipam.CAFile,
+	//	CertFile: "/etc/kubernetes/pki/etcd/etcd.pem",
+	//	KeyFile:  "/etc/kubernetes/pki/etcd/etcd-key.pem",
+	//	TrustedCAFile:   "/etc/kubernetes/pki/etcd/etcd-root-ca.pem",
 	//}
-	//
-	//t, err := transport.NewTransport(tlsInfo, time.Second)
 
+//	t, err := transport.NewTransport(tlsInfo, time.Second)
 	var etcdServerList []string = strings.Split(IpamS.Ipam.Etcdcluster, ",")
 	cli, err := client.New(client.Config{
 		Endpoints:               etcdServerList,
@@ -34,7 +33,6 @@ func (IpamS *IpamConfig) etcdConn() (EtcdConn EtcdHelper) {
 	//	Username:  IpamS.Ipam.Username,
 	//	Password:  IpamS.Ipam.Password,
 	})
-
 	if err != nil {
 		log.Println("connect failed, err:", err)
 		os.Exit(-1)

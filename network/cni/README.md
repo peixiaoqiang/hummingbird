@@ -18,7 +18,8 @@
 1. 首先将代码拉取进行go get && go build,如果你不熟悉go的编译，可以现在release二进制版本，将二进制文件拷贝到kubernetes cni插件目录中 例如/opt/cni/bin
 2. 将demo目录下的10-macvlan.conf文件拷贝到kuberneres 的cni配置文件目录中 例如/etc/cni/net.d/
 3. 首先进行一次IP初始化来确定容器IP的起始和结束范围
-`tdipam -init init -start 10.0.0.140 -end 10.0.0.150 -subnet 10.0.0.140/17 -gateway 10.0.0.254 -config /etc/cni/net.d/10-macvlan.conf `
+
+`tdipam -init init -start 10.0.0.140 -end 10.0.0.150 -subnet 10.0.0.140/17 -gateway 10.0.0.254 -nameservers 8.8.8.8,4.4.4.4 -defaultroute 172.20.0.1 0.0.0/0 -config /etc/cni/net.d/10-macvlan.conf `
 
 
 ###参考

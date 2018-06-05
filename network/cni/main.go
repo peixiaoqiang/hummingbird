@@ -13,7 +13,7 @@ import (
 	"flag"
 		"io/ioutil"
 	"strconv"
-)
+	)
 
 type EtcdConfig struct {
 	Etcdcluster      string `json:etcd server地址`
@@ -60,13 +60,13 @@ func main(){
 	GateWay := flag.String("gateway","","172.0.127.254")
 	Nameservrs := flag.String("nameservers","","8.8.8.8,233.5.5.5")
 	DefaultRoute := flag.String("defaultroute","","172.0.127.254,0.0.0/0")
-	ConfiFile := flag.String("config","","/etc/cni/net.d/10-macvlan.conf")
+	CniFile := flag.String("config","/etc/cni/net.d/10-macvlan.conf","/etc/cni/net.d/10-macvlan.conf")
 	flag.Parse()
 	if *init == "init"{
-		if contents, err:= ioutil.ReadFile(*ConfiFile);err == nil{
+		if contents, err:= ioutil.ReadFile(*CniFile);err == nil{
 			Config.Load(contents)
 		}else{
-			log.Fatalf("Lack of configuration files")
+			log.Fatal(err,":Lack of configuration files")
 		}
 
 		Cli := Config.etcdConn()
@@ -123,15 +123,15 @@ func main(){
 
 		if len(*DefaultRoute) > 0 {
 			defaultroute := strings.Split(*DefaultRoute, ",")
-			_, _, err := net.ParseCIDR(defaultroute[1])
+			_, _, err := net.ParseCIDR(defaultroute[0])
 			if err !=nil {
-				log.Fatal("Incorrect DefaultRoute address ")
+				log.Fatalf("Incorrect DefaultRoute address ")
 			}
-			gw := net.ParseIP(defaultroute[0])
+			gw := net.ParseIP(defaultroute[1])
 			if gw == nil {
 				log.Fatalf("Incorrect gateway address")
 			}
-			err = Cli.setKey(Config.Ipam.Dns,defaultroute[1],defaultroute[0])
+			err = Cli.setKey(Config.Ipam.Routes,defaultroute[1],defaultroute[0])
 			if err != nil{
 				log.Fatalf("Create key DefaultRoute failure")
 			}

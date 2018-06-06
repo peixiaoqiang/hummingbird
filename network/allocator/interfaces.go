@@ -31,4 +31,38 @@ type Interface interface {
 	Free() int
 }
 
+// Snapshottable is an Interface that can be snapshotted and restored. Snapshottable
+// should be threadsafe.
+type Snapshottable interface {
+	Interface
+	Snapshot() (string, []byte)
+	Restore(string, []byte) error
+}
+
+// RangeAllocation is an opaque API object (not exposed to end users) that can be persisted to record
+// the global allocation state of the cluster. The schema of Range and Data generic, in that Range
+// should be a string representation of the inputs to a range (for instance, for IP allocation it
+// might be a CIDR) and Data is an opaque blob understood by an allocator which is typically a
+// binary range.  Consumers should use annotations to record additional information (schema version,
+// data encoding hints). A range allocation should *ALWAYS* be recreatable at any time by observation
+// of the cluster, thus the object is less strongly typed than most.
+type RangeAllocation struct {
+	Range string
+	// A byte array representing the serialized state of a range allocation. Additional clarifiers on
+	// the type or format of data should be represented with annotations. For IP allocations, this is
+	// represented as a bit array starting at the base IP of the CIDR in Range, with each bit representing
+	// a single allocated address (the fifth bit on CIDR 10.0.0.0/8 is 10.0.0.4).
+	Data []byte
+}
+
+// RangeRegistry is a registry that can retrieve or persist a RangeAllocation object.
+type RangeRegistry interface {
+	// Get returns the latest allocation, an empty object if no allocation has been made,
+	// or an error if the allocation could not be retrieved.
+	Get() (*RangeAllocation, error)
+	// CreateOrUpdate should create or update the provide allocation, unless a conflict
+	// has occurred since the item was last created.
+	Init() error
+}
+
 type AllocatorFactory func(max int, rangeSpec string) Interface

@@ -13,11 +13,13 @@ type Interface interface {
 	// Create adds a new object at a key unless it already exists. 'ttl' is time-to-live
 	// in seconds (0 means forever). If no error is returned and out is not nil, out will be
 	// set to the read value from database.
-	Create(ctx context.Context, key string, obj, out Object, ttl uint64) error
+	Create(ctx context.Context, key string, obj Object) error
+
+	Update(ctx context.Context, key string, obj Object) error
 
 	// Delete removes the specified key and returns the value that existed at that spot.
 	// If key didn't exist, it will return NotFound storage error.
-	Delete(ctx context.Context, key string, out Object) error
+	Delete(ctx context.Context, key string) error
 
 	// Get unmarshals json found at key into objPtr. On a not found error, will either
 	// return a zero object of the requested type, or an error, depending on ignoreNotFound.

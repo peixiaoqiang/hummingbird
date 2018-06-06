@@ -17,9 +17,9 @@ limitations under the License.
 package allocator
 
 import (
+	"context"
 	"errors"
 	"sync"
-	"k8s.io/kubernetes/pkg/registry/core/service/allocator"
 	"github.com/TalkingData/hummingbird/storage"
 	"github.com/TalkingData/hummingbird/storage/storagebackend"
 	"github.com/TalkingData/hummingbird/storage/storagebackend/factory"
@@ -36,7 +36,7 @@ var (
 type Etcd struct {
 	lock sync.Mutex
 
-	alloc   allocator.Interface
+	alloc   Snapshottable
 	storage storage.Interface
 	last    string
 
@@ -44,11 +44,12 @@ type Etcd struct {
 }
 
 // Etcd implements allocator.Interface and rangeallocation.RangeRegistry
-var _ allocator.Interface = &Etcd{}
+var _ Interface = &Etcd{}
+var _ RangeRegistry = &Etcd{}
 
 // NewEtcd returns an allocator that is backed by Etcd and can manage
 // persisting the snapshot state of allocation after each allocation is made.
-func NewEtcd(alloc allocator.Interface, baseKey string, config *storagebackend.Config) *Etcd {
+func NewEtcd(alloc Snapshottable, baseKey string, config *storagebackend.Config) *Etcd {
 	storage, _ := factory.NewRawStorage(config)
 
 	return &Etcd{
@@ -68,6 +69,11 @@ func (e *Etcd) Allocate(offset int) (bool, error) {
 		return ok, err
 	}
 
+	err = e.update()
+	if err != nil {
+		return false, err
+	}
+
 	return true, nil
 }
 
@@ -81,6 +87,11 @@ func (e *Etcd) AllocateNext() (int, bool, error) {
 		return offset, ok, err
 	}
 
+	err = e.update()
+	if err != nil {
+		return 0, false, err
+	}
+
 	return offset, ok, err
 }
 
@@ -89,7 +100,13 @@ func (e *Etcd) Release(item int) error {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	if err := e.alloc.Release(item); err != nil {
+	err := e.alloc.Release(item)
+	if err != nil {
+		return err
+	}
+
+	err = e.update()
+	if err != nil {
 		return err
 	}
 
@@ -116,4 +133,38 @@ func (e *Etcd) Free() int {
 	defer e.lock.Unlock()
 
 	return e.alloc.Free()
+}
+
+// Get returns an api.RangeAllocation that represents the current state in
+// etcd. If the key does not exist, the object will have an empty ResourceVersion.
+func (e *Etcd) Get() (*RangeAllocation, error) {
+	existing := &RangeAllocation{}
+	if err := e.storage.Get(context.TODO(), e.baseKey, existing); err != nil {
+		return nil, err
+	}
+	return existing, nil
+}
+
+func (e *Etcd) Init() error {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	rangeSpec, data := e.alloc.Snapshot()
+	r := &RangeAllocation{Range: rangeSpec, Data: data}
+	err := e.storage.Create(context.TODO(), e.baseKey, r)
+	if err != nil {
+		r, err = e.Get()
+		if err != nil {
+			return err
+		}
+	}
+	err = e.alloc.Restore(r.Range, r.Data)
+	return err
+}
+
+func (e *Etcd) update() error {
+	rangeSpec, data := e.alloc.Snapshot()
+	r := RangeAllocation{Range: rangeSpec, Data: data}
+	err := e.storage.Update(context.TODO(), e.baseKey, r)
+	return err
 }

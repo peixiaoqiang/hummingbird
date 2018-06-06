@@ -21,6 +21,10 @@ import (
 	"path"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/TalkingData/hummingbird/storage"
+	"github.com/golang/glog"
+	"encoding/gob"
+	"bytes"
+	"encoding/base64"
 )
 
 // Creates a new storage interface from the client
@@ -45,19 +49,94 @@ type etcdHelper struct {
 }
 
 // Implements storage.Interface.
-func (h *etcdHelper) Create(ctx context.Context, key string, obj, out storage.Object, ttl uint64) error {
-	// TODO
-	return nil
+func (h *etcdHelper) Create(ctx context.Context, key string, obj storage.Object) error {
+	if ctx == nil {
+		glog.Errorf("Context is nil")
+	}
+	key = path.Join(h.pathPrefix, key)
+	data, err := encode(obj)
+	if err != nil {
+		return err
+	}
+	opts := etcd.SetOptions{
+		PrevExist: etcd.PrevNoExist,
+	}
+
+	_, err = h.etcdKeysAPI.Set(ctx, key, data, &opts)
+	return err
+}
+
+func encode(obj storage.Object) (string, error) {
+	var out bytes.Buffer
+	enc := gob.NewEncoder(&out)
+	err := enc.Encode(obj)
+	if err != nil {
+		return "", err
+	}
+
+	return base64.StdEncoding.EncodeToString(out.Bytes()), nil
+}
+
+func decode(str string, ptr storage.Object) error {
+	data, err := base64.StdEncoding.DecodeString(str)
+	if err != nil {
+		return err
+	}
+	dec := gob.NewDecoder(bytes.NewBuffer(data))
+	err = dec.Decode(ptr)
+	return err
 }
 
 // Implements storage.Interface.
-func (h *etcdHelper) Delete(ctx context.Context, key string, out storage.Object) error {
-	// TODO
+func (h *etcdHelper) Delete(ctx context.Context, key string) error {
+	if ctx == nil {
+		glog.Errorf("Context is nil")
+	}
+
+	key = path.Join(h.pathPrefix, key)
+	_, err := h.etcdKeysAPI.Delete(ctx, key, nil)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 // Implements storage.Interface.
 func (h *etcdHelper) Get(ctx context.Context, key string, objPtr storage.Object) error {
-	// TODO
+	if ctx == nil {
+		glog.Errorf("Context is nil")
+	}
+
+	key = path.Join(h.pathPrefix, key)
+	res, err := h.etcdKeysAPI.Get(ctx, key, nil)
+	if err != nil {
+		return err
+	}
+
+	err = decode(res.Node.Value, objPtr)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Implements storage.Interface.
+func (h *etcdHelper) Update(ctx context.Context, key string, objPtr storage.Object) error {
+	if ctx == nil {
+		glog.Errorf("Context is nil")
+	}
+
+	data, err := encode(objPtr)
+	if err != nil {
+		return err
+	}
+
+	opts := etcd.SetOptions{
+		PrevExist: etcd.PrevExist,
+	}
+	_, err = h.etcdKeysAPI.Set(ctx, key, data, &opts)
+	if err != nil {
+		return err
+	}
 	return nil
 }

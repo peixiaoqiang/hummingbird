@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/containernetworking/cni/pkg/types"
 	"strings"
-	)
+	"net"
+	"log"
+)
 
 func GetDns(dnsEtcdConfig *map[string]string) types.DNS {
 
@@ -14,7 +16,12 @@ func GetDns(dnsEtcdConfig *map[string]string) types.DNS {
 		}
 
 		if strings.Contains(k,"nameservers"){
-			dns.Nameservers = append(dns.Nameservers,v)
+			ip := net.ParseIP(v)
+			if ip != nil {
+				dns.Nameservers = append(dns.Nameservers, v)
+			}else{
+				log.Fatal("Nameserver IP error")
+			}
 		}
 
 		if strings.Contains(k,"search"){

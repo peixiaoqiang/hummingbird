@@ -114,7 +114,7 @@ func main(){
 			nameservers := strings.Split(*Nameservrs, ",")
 			for i,servers := range nameservers{
 				if net.ParseIP(servers) != nil {
-					Cli.setKey(Config.Ipam.Dns,strconv.Itoa(i),servers)
+					Cli.setKey(Config.Ipam.Dns+"nameservers",strconv.Itoa(i),servers)
 				} else{
 				log.Fatalf("Create key nameservers failure")
 				}
@@ -135,10 +135,9 @@ func main(){
 			if err != nil{
 				log.Fatalf("Create key DefaultRoute failure")
 			}
-
-
 		}
 
+		Cli.setKey(Config.Ipam.Alreadyusedip+"podname/","init","")
 
 	}
 	skel.PluginMain(cmdAdd, cmdDel, version.All)
@@ -161,14 +160,38 @@ func cmdAdd(args *skel.CmdArgs) error {
 	//连接etcd
 	Cli := Config.etcdConn()
 
-	ContainerRange := Cli.getKey(Config.Ipam.Containernetwork)
-	err := IsKeyExist(ContainerRange, Config.Ipam.Containernetwork)
+	ContainerRange,err:= Cli.getKey(Config.Ipam.Containernetwork)
+	if err !=nil{
+		log.Fatal(err)
+	}
+	err = IsKeyExist(ContainerRange, Config.Ipam.Containernetwork)
 	if err != nil {
-		log.Println(err)
 		os.Exit(-1)
 	}
 
-	//获取pod name
+	//返回cni相关
+	result := &current.Result{}
+	//返回cni 版本
+	result.CNIVersion = Config.CNIVersion
+	//返给cni ip
+	IPs := &current.IPConfig{}
+	//获取dns配置
+	dnsEtcdConfig,err := Cli.getKey(Config.Ipam.Dns)
+	if err != nil{
+		log.Fatal(err)
+	}
+
+	result.DNS = GetDns(dnsEtcdConfig)
+
+	//自定义容器路由规则
+	routeEtcdConfig, err:= Cli.getKey(Config.Ipam.Routes)
+	if err !=nil{
+		log.Fatal(err)
+	}
+	result.Routes = GetRoute(routeEtcdConfig)
+
+
+	//设置ip,获取pod name
 	var podName string
 	Args := strings.Split(args.Args,";")
 	for _, as := range Args{
@@ -182,7 +205,10 @@ func cmdAdd(args *skel.CmdArgs) error {
 	//从etcd库中pod_name是否已经存在Ip，如果存在，则不需要再从新分配IP,并且将新的容器ID写入etcd
 	var AvailableIp net.IP
 	if len(podName) > 0 {
-		existPodName := Cli.getKey(Config.Ipam.Alreadyusedip + "podname/")
+		existPodName,err:= Cli.getKey(Config.Ipam.Alreadyusedip + "podname/")
+		if err !=nil{
+			log.Fatal(err)
+		}
 		log.Println(podName)
 		if existIp, ok := (*existPodName)[Config.Ipam.Alreadyusedip + "podname/"+podName]; ok {
 			AvailableIp = net.ParseIP(existIp)
@@ -200,11 +226,15 @@ func cmdAdd(args *skel.CmdArgs) error {
 	//效验IP地址范围是否正确
 	ContainerR.Canonicalize()
 	//从etcd获取目前已经使用掉的IP
-	AlreadUsedIp := Cli.getKey(Config.Ipam.Alreadyusedip)
+	AlreadUsedIp,err:= Cli.getKey(Config.Ipam.Alreadyusedip)
+	if err !=nil{
+		log.Fatal(err)
+	}
+
 	//获取目前可用的IP地址
 	IpList, err := Hosts((*ContainerRange)[Config.Ipam.Containernetwork+"SubNet"])
 	if err != nil {
-		log.Fatal("IP地址范围错误")
+		log.Fatal(err)
 	}
 
 	//如果etcd中不存在IP则分配IP
@@ -229,25 +259,14 @@ func cmdAdd(args *skel.CmdArgs) error {
 			log.Fatal("没有可用Ip")
 		}
 	}
-	//返回cni相关
-	result := &current.Result{}
-	//返回cni 版本
-	result.CNIVersion = Config.CNIVersion
-	//返给cni ip
-	IPs := &current.IPConfig{}
+
+
 	IPs.Gateway = ContainerR.Gateway
 	IPs.Version = "4"
 	IPs.Address.IP = AvailableIp
 
 	IPs.Address.Mask = ContainerR.Subnet.Mask
 	result.IPs = append(result.IPs, IPs)
-	//获取dns配置
-	dnsEtcdConfig := Cli.getKey(Config.Ipam.Dns)
-	result.DNS = GetDns(dnsEtcdConfig)
-
-	//自定义容器路由规则
-	routeEtcdConfig := Cli.getKey(Config.Ipam.Routes)
-	result.Routes = GetRoute(routeEtcdConfig)
 	return types.PrintResult(result, Config.CNIVersion)
 
 }
@@ -266,7 +285,7 @@ func cmdDel(args *skel.CmdArgs) error {
 	Config := IpamConfig{}
 	Config.Load(args.StdinData)
 	Cli := Config.etcdConn()
-	AlreadUsedIp := Cli.getKey(Config.Ipam.Alreadyusedip)
+	AlreadUsedIp,_:= Cli.getKey(Config.Ipam.Alreadyusedip)
 
 	//连接etcd
 	for k,v := range *AlreadUsedIp {

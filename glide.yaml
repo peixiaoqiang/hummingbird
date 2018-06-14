@@ -1,0 +1,25 @@
+package: github.com/TalkingData/hummingbird
+import:
+- package: github.com/containernetworking/cni
+  version: v0.6.0
+  subpackages:
+  - pkg/skel
+  - pkg/types
+  - pkg/types/current
+  - pkg/version
+- package: github.com/coreos/etcd
+  version: v3.3.7
+  subpackages:
+  - client
+  - pkg/transport
+- package: github.com/golang/glog
+- package: github.com/golang/protobuf
+  version: v1.1.0
+  subpackages:
+  - proto
+- package: golang.org/x/net
+  subpackages:
+  - context
+  - http2
+- package: google.golang.org/grpc
+  version: v1.12.2

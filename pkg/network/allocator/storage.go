@@ -17,12 +17,13 @@ limitations under the License.
 package allocator
 
 import (
+	"net"
 	"context"
 	"errors"
 	"sync"
-	"github.com/TalkingData/hummingbird/storage"
-	"github.com/TalkingData/hummingbird/storage/storagebackend"
-	"github.com/TalkingData/hummingbird/storage/storagebackend/factory"
+	"github.com/TalkingData/hummingbird/pkg/storage"
+	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
+	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/factory"
 )
 
 var (
@@ -40,7 +41,8 @@ type Etcd struct {
 	storage storage.Interface
 	last    string
 
-	baseKey string
+	registryKey string
+	baseKey     string
 }
 
 // Etcd implements allocator.Interface and rangeallocation.RangeRegistry
@@ -49,13 +51,14 @@ var _ RangeRegistry = &Etcd{}
 
 // NewEtcd returns an allocator that is backed by Etcd and can manage
 // persisting the snapshot state of allocation after each allocation is made.
-func NewEtcd(alloc Snapshottable, baseKey string, config *storagebackend.Config) *Etcd {
+func NewEtcd(alloc Snapshottable, baseKey string, registryKey string, config *storagebackend.Config) *Etcd {
 	storage, _ := factory.NewRawStorage(config)
 
 	return &Etcd{
-		alloc:   alloc,
-		storage: storage,
-		baseKey: baseKey,
+		alloc:       alloc,
+		storage:     storage,
+		baseKey:     baseKey,
+		registryKey: registryKey,
 	}
 }
 
@@ -162,9 +165,44 @@ func (e *Etcd) Init() error {
 	return err
 }
 
+func (e *Etcd) ClearRangeRegistry() error {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	err := e.storage.Delete(context.TODO(), e.baseKey)
+	return err
+}
+
 func (e *Etcd) update() error {
 	rangeSpec, data := e.alloc.Snapshot()
 	r := RangeAllocation{Range: rangeSpec, Data: data}
 	err := e.storage.Update(context.TODO(), e.baseKey, r)
 	return err
+}
+
+func (e *Etcd) Register(ip *net.IP, id string) error {
+	err := e.storage.Create(context.TODO(), e.registryKey+"/"+id, ip.String())
+	return err
+}
+
+func (e *Etcd) Deregister(id string) error {
+	return e.storage.Delete(context.TODO(), e.registryKey+"/"+id)
+}
+
+func (e *Etcd) ClearIPRegistry() error {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+
+	err := e.storage.Delete(context.TODO(), e.registryKey)
+	return err
+}
+
+func (e *Etcd) GetIP(id string) (*net.IP, error) {
+	ipStr := ""
+	err := e.storage.Get(context.TODO(), e.registryKey+"/"+id, &ipStr)
+	if err != nil {
+		return nil, err
+	}
+	ip := net.ParseIP(ipStr)
+	return &ip, nil
 }

@@ -24,10 +24,10 @@ import (
 	etcd2client "github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/pkg/transport"
 
-	"github.com/TalkingData/hummingbird/storage/storagebackend"
-	"github.com/TalkingData/hummingbird/storage/storagebackend/etcd"
-	"github.com/TalkingData/hummingbird/storage"
-	utilnet "github.com/TalkingData/hummingbird/utils"
+	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
+	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/etcd"
+	"github.com/TalkingData/hummingbird/pkg/storage"
+	utilnet "github.com/TalkingData/hummingbird/pkg/utils/net"
 )
 
 func newETCD2Storage(c storagebackend.Config) (storage.Interface, DestroyFunc, error) {

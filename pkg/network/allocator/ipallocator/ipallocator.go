@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"github.com/TalkingData/hummingbird/network/allocator"
+	"github.com/TalkingData/hummingbird/pkg/network/allocator"
 )
 
 // Interface manages the allocation of IP addresses out of a range. Interface

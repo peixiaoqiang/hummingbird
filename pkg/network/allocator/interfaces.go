@@ -16,6 +16,8 @@ limitations under the License.
 
 package allocator
 
+import "net"
+
 // Interface manages the allocation of items out of a range. Interface
 // should be threadsafe.
 type Interface interface {
@@ -57,12 +59,29 @@ type RangeAllocation struct {
 
 // RangeRegistry is a registry that can retrieve or persist a RangeAllocation object.
 type RangeRegistry interface {
-	// Get returns the latest allocation, an empty object if no allocation has been made,
-	// or an error if the allocation could not be retrieved.
 	Get() (*RangeAllocation, error)
-	// CreateOrUpdate should create or update the provide allocation, unless a conflict
-	// has occurred since the item was last created.
 	Init() error
+	// For test case.
+	ClearRangeRegistry() error
 }
 
 type AllocatorFactory func(max int, rangeSpec string) Interface
+
+type IP struct {
+	IP      *net.IPNet
+	Gateway net.IP
+	Routes  []*Route
+}
+
+type Route struct {
+	Dst *net.IPNet
+	GW  net.IP
+}
+
+type IPRegistry interface {
+	Register(*net.IP, string) error
+	Deregister(string) error
+	// For test case
+	ClearIPRegistry() error
+	GetIP(id string) (*net.IP, error)
+}

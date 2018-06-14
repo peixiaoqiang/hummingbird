@@ -19,12 +19,13 @@ package etcd
 import (
 	"context"
 	"path"
-	etcd "github.com/coreos/etcd/client"
-	"github.com/TalkingData/hummingbird/storage"
-	"github.com/golang/glog"
 	"encoding/gob"
 	"bytes"
 	"encoding/base64"
+
+	etcd "github.com/coreos/etcd/client"
+	"github.com/TalkingData/hummingbird/pkg/storage"
+	"github.com/golang/glog"
 )
 
 // Creates a new storage interface from the client

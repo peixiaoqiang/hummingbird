@@ -1,0 +1,63 @@
+package main
+
+import (
+	"time"
+	"log"
+
+	"google.golang.org/grpc"
+	"golang.org/x/net/context"
+
+	"github.com/containernetworking/cni/pkg/skel"
+	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
+)
+
+func newConn(serverIp string) (*grpc.ClientConn, error) {
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	opts = append(opts, grpc.WithBlock())
+	return grpc.Dial(serverIp, opts...)
+}
+
+func getClient(serverIp string) (ipallocatorservice.IPAllocatorClient, error) {
+	conn, err := newConn(serverIp)
+	if err != nil {
+		log.Printf("cannot establish the conn: %v", err)
+		return nil, err
+	}
+
+	return ipallocatorservice.NewIPAllocatorClient(conn), nil
+}
+
+func AllocateNext(args *skel.CmdArgs, serverIp string) (*ipallocatorservice.IP, error) {
+	client, err := getClient(serverIp)
+	if err != nil {
+		log.Printf("cannot get client: %v", err)
+		return nil, err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	ip := &ipallocatorservice.IP{ContainerID: args.ContainerID}
+	ip, err = client.AllocateNext(ctx, ip)
+	if err != nil {
+		log.Printf("grpc call failed: %v", err)
+		return nil, err
+	}
+
+	return ip, nil
+}
+
+func Release(args *skel.CmdArgs, serverIp string) error {
+	client, err := getClient(serverIp)
+	if err != nil {
+		log.Printf("cannot get client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	ip := &ipallocatorservice.IP{ContainerID: args.ContainerID}
+	_, err = client.Release(ctx, ip)
+	return err
+}

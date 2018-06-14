@@ -19,8 +19,8 @@ package factory
 import (
 	"fmt"
 
-	"github.com/TalkingData/hummingbird/storage"
-	"github.com/TalkingData/hummingbird/storage/storagebackend"
+	"github.com/TalkingData/hummingbird/pkg/storage"
+	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 	"github.com/golang/glog"
 )
 

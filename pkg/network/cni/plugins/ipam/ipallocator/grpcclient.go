@@ -14,22 +14,25 @@ import (
 func newConn(serverIp string) (*grpc.ClientConn, error) {
 	var opts []grpc.DialOption
 	opts = append(opts, grpc.WithInsecure())
-	opts = append(opts, grpc.WithBlock())
 	return grpc.Dial(serverIp, opts...)
 }
 
-func getClient(serverIp string) (ipallocatorservice.IPAllocatorClient, error) {
+func getClient(serverIp string) (ipallocatorservice.IPAllocatorClient, func(), error) {
 	conn, err := newConn(serverIp)
 	if err != nil {
 		log.Printf("cannot establish the conn: %v", err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return ipallocatorservice.NewIPAllocatorClient(conn), nil
+	return ipallocatorservice.NewIPAllocatorClient(conn), func() {
+		conn.Close()
+	}, nil
 }
 
 func AllocateNext(args *skel.CmdArgs, serverIp string) (*ipallocatorservice.IP, error) {
-	client, err := getClient(serverIp)
+	client, cleanup, err := getClient(serverIp)
+	defer cleanup()
+
 	if err != nil {
 		log.Printf("cannot get client: %v", err)
 		return nil, err
@@ -49,7 +52,9 @@ func AllocateNext(args *skel.CmdArgs, serverIp string) (*ipallocatorservice.IP, 
 }
 
 func Release(args *skel.CmdArgs, serverIp string) error {
-	client, err := getClient(serverIp)
+	client, cleanup, err := getClient(serverIp)
+	defer cleanup()
+
 	if err != nil {
 		log.Printf("cannot get client: %v", err)
 	}

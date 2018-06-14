@@ -1,10 +1,10 @@
 package ipallocator
 
 import (
-	"testing"
-	"net"
 	"fmt"
+	"net"
 	"sync"
+	"testing"
 
 	"github.com/TalkingData/hummingbird/pkg/network/allocator"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"

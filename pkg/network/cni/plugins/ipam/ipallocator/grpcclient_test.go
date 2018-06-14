@@ -1,11 +1,11 @@
 package main
 
 import (
-	"testing"
 	"sync"
+	"testing"
 
-	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/TalkingData/hummingbird/pkg/utils"
+	"github.com/containernetworking/cni/pkg/skel"
 )
 
 const testServerIP = "127.0.0.1:10000"

@@ -17,14 +17,14 @@ limitations under the License.
 package etcd
 
 import (
-	"context"
-	"path"
-	"encoding/gob"
 	"bytes"
+	"context"
 	"encoding/base64"
+	"encoding/gob"
+	"path"
 
-	etcd "github.com/coreos/etcd/client"
 	"github.com/TalkingData/hummingbird/pkg/storage"
+	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
 )
 

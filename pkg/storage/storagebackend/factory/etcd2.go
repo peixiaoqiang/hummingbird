@@ -24,9 +24,9 @@ import (
 	etcd2client "github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/pkg/transport"
 
+	"github.com/TalkingData/hummingbird/pkg/storage"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/etcd"
-	"github.com/TalkingData/hummingbird/pkg/storage"
 	utilnet "github.com/TalkingData/hummingbird/pkg/utils/net"
 )
 

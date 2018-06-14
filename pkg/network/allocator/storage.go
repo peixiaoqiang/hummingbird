@@ -17,13 +17,13 @@ limitations under the License.
 package allocator
 
 import (
-	"net"
 	"context"
 	"errors"
-	"sync"
 	"github.com/TalkingData/hummingbird/pkg/storage"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/factory"
+	"net"
+	"sync"
 )
 
 var (

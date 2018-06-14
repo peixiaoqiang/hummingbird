@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"time"
 	"math/rand"
+	"time"
 )
 
 //生成随机字符串

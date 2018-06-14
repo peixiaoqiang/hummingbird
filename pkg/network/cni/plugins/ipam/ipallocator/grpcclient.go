@@ -1,14 +1,14 @@
 package main
 
 import (
-	"time"
 	"log"
+	"time"
 
-	"google.golang.org/grpc"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 
-	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
+	"github.com/containernetworking/cni/pkg/skel"
 )
 
 func newConn(serverIp string) (*grpc.ClientConn, error) {

@@ -19,9 +19,9 @@ package ipallocator
 import (
 	"errors"
 	"fmt"
+	"github.com/TalkingData/hummingbird/pkg/network/allocator"
 	"math/big"
 	"net"
-	"github.com/TalkingData/hummingbird/pkg/network/allocator"
 )
 
 // Interface manages the allocation of IP addresses out of a range. Interface

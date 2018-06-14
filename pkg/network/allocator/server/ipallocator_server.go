@@ -1,21 +1,21 @@
 package main
 
 import (
-	"net"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"io/ioutil"
-	"encoding/json"
+	"log"
+	"net"
 
 	"golang.org/x/net/context"
 
 	"google.golang.org/grpc"
 
-	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
-	"github.com/TalkingData/hummingbird/pkg/network/allocator/ipallocator"
 	"github.com/TalkingData/hummingbird/pkg/network/allocator"
+	"github.com/TalkingData/hummingbird/pkg/network/allocator/ipallocator"
 	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
+	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 )
 
 var (

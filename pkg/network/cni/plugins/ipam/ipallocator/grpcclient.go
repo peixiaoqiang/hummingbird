@@ -5,44 +5,16 @@ import (
 	"time"
 
 	"golang.org/x/net/context"
-	"google.golang.org/grpc"
-
 	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 	"github.com/containernetworking/cni/pkg/skel"
 )
 
-func newConn(serverIp string) (*grpc.ClientConn, error) {
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithInsecure())
-	return grpc.Dial(serverIp, opts...)
-}
-
-func getClient(serverIp string) (ipallocatorservice.IPAllocatorClient, func(), error) {
-	conn, err := newConn(serverIp)
-	if err != nil {
-		log.Printf("cannot establish the conn: %v", err)
-		return nil, nil, err
-	}
-
-	return ipallocatorservice.NewIPAllocatorClient(conn), func() {
-		conn.Close()
-	}, nil
-}
-
-func AllocateNext(args *skel.CmdArgs, serverIp string) (*ipallocatorservice.IP, error) {
-	client, cleanup, err := getClient(serverIp)
-	defer cleanup()
-
-	if err != nil {
-		log.Printf("cannot get client: %v", err)
-		return nil, err
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func AllocateNext(args *skel.CmdArgs, client ipallocatorservice.IPAllocatorClient) (*ipallocatorservice.IP, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
 	ip := &ipallocatorservice.IP{ContainerID: args.ContainerID}
-	ip, err = client.AllocateNext(ctx, ip)
+	ip, err := client.AllocateNext(ctx, ip)
 	if err != nil {
 		log.Printf("grpc call failed: %v", err)
 		return nil, err
@@ -51,18 +23,11 @@ func AllocateNext(args *skel.CmdArgs, serverIp string) (*ipallocatorservice.IP, 
 	return ip, nil
 }
 
-func Release(args *skel.CmdArgs, serverIp string) error {
-	client, cleanup, err := getClient(serverIp)
-	defer cleanup()
-
-	if err != nil {
-		log.Printf("cannot get client: %v", err)
-	}
-
+func Release(args *skel.CmdArgs, client ipallocatorservice.IPAllocatorClient) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	ip := &ipallocatorservice.IP{ContainerID: args.ContainerID}
-	_, err = client.Release(ctx, ip)
-	return err
+	client.Release(ctx, ip)
+	return nil
 }

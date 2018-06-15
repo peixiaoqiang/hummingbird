@@ -5,10 +5,13 @@ import (
 	"log"
 	"net"
 
+	"google.golang.org/grpc"
+
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
+	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 )
 
 type IPAMConfig struct {
@@ -38,7 +41,14 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
-	ip, err := AllocateNext(args, conf.IPAM.ServerIP)
+	client, cleanup, err := getClient(conf)
+	defer cleanup()
+	if err != nil {
+		log.Printf("cannot get the client: %v", err)
+		return err
+	}
+
+	ip, err := AllocateNext(args, client)
 	if err != nil {
 		log.Printf("grpc add call failed:%v", err)
 		return err
@@ -47,11 +57,13 @@ func cmdAdd(args *skel.CmdArgs) error {
 	result := &current.Result{}
 	result.CNIVersion = conf.CNIVersion
 	ipConfig := &current.IPConfig{}
-	_, address, err := net.ParseCIDR(ip.Ip)
+	ipR, address, err := net.ParseCIDR(ip.Ip)
+	address.IP = ipR
 	if err != nil {
 		log.Printf("incorrect cidr:%v", err)
 		return err
 	}
+	ipConfig.Version = "4"
 	ipConfig.Address = *address
 	ipConfig.Gateway = net.ParseIP(ip.Gateway)
 	result.IPs = append(result.IPs, ipConfig)
@@ -76,9 +88,38 @@ func cmdDel(args *skel.CmdArgs) error {
 	}
 	_ = conf
 
-	return Release(args, conf.IPAM.ServerIP)
+	client, cleanup, err := getClient(conf)
+	defer cleanup()
+	if err != nil {
+		log.Printf("cannot get the client: %v", err)
+	}
+
+	return Release(args, client)
 }
 
 func main() {
 	skel.PluginMain(cmdAdd, cmdDel, version.PluginSupports("", "0.1.0", "0.2.0", version.Current()))
+}
+
+func getClient(conf *NetConf) (ipallocatorservice.IPAllocatorClient, func(), error) {
+	conn, err := newConn(conf.IPAM.ServerIP)
+	if err != nil {
+		log.Printf("cannot establish the conn: %v", err)
+		return nil, nil, err
+	}
+
+	return ipallocatorservice.NewIPAllocatorClient(conn), func() {
+		if conn != nil {
+			err = conn.Close()
+			if err != nil {
+				log.Printf("cannot close the conn: %v", err)
+			}
+		}
+	}, nil
+}
+
+func newConn(serverIp string) (*grpc.ClientConn, error) {
+	var opts []grpc.DialOption
+	opts = append(opts, grpc.WithInsecure())
+	return grpc.Dial(serverIp, opts...)
 }

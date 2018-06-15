@@ -18,9 +18,8 @@ import (
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 )
 
-var (
-	configPath = flag.String("config", "", "The ipallocator server config path")
-)
+var configPath = flag.String("config", "", "The ipallocator server config path")
+var config *Config
 
 type IPAllocatorServer struct {
 	IPAllocator   *ipallocator.Range
@@ -40,7 +39,19 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 	}
 
 	ipCIDR := net.IPNet{IP: assignedIP, Mask: s.IPAllocator.CIDR().Mask}
-	return &ipallocatorservice.IP{Ip: ipCIDR.String()}, nil
+	ipR := &ipallocatorservice.IP{Ip: ipCIDR.String()}
+	if config != nil {
+		if config.Routes != nil {
+			newRs := []*ipallocatorservice.Route{}
+			for _, r := range config.Routes {
+				newRs = append(newRs, &ipallocatorservice.Route{Dst: r.Dst, Gw: r.Gw})
+			}
+			ipR.Routes = newRs
+		}
+
+		ipR.Gateway = config.Gateway
+	}
+	return ipR, nil
 }
 
 func (s *IPAllocatorServer) Release(ctx context.Context, ip *ipallocatorservice.IP) (*ipallocatorservice.Blank, error) {
@@ -92,25 +103,32 @@ type Config struct {
 	BaseKey     string   `json:"base_key"`
 	RegistryKey string   `json:"registry_key"`
 	EtcdIps     []string `json:"etcd_ips"`
+	Routes      []Route  `json:"routes"`
+	Gateway     string   `json:"gateway"`
 }
 
-func loadConfig(configPath string) (*Config, error) {
+type Route struct {
+	Dst string `json:"dst"`
+	Gw  string `json:"gw"`
+}
+
+func initConfig(configPath string) error {
 	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	config := &Config{}
+	config = &Config{}
 	err = json.Unmarshal(data, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return config, nil
+	return nil
 }
 
 func main() {
 	flag.Parse()
-	config, err := loadConfig(*configPath)
+	err := initConfig(*configPath)
 	if err != nil {
 		log.Fatalf("failted to load config:%v", err)
 	}

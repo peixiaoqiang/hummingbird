@@ -83,7 +83,7 @@ func (s *IPAllocatorServer) Release(ctx context.Context, ip *ipallocatorservice.
 		return nil, err
 	}
 
-	glog.V(1).Infof("release and deregister ip successfully, ip is %v", ip)
+	glog.Infof("release and deregister ip successfully, ip is %v", ip)
 	return &ipallocatorservice.Blank{}, nil
 }
 

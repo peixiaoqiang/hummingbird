@@ -1,0 +1,61 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ipallocator-cni-cfg
+  namespace: kube-system
+data:
+  10-macvlan.json: |
+    {
+        "name": "macvlan",
+        "type": "macvlan",
+        "master": "eth2",
+        "mode": "bridge",
+        "ipam": {
+                "type": "ipallocator",
+                "server_ip": ""
+        }
+    }
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: ipallocator-cni-ds
+  namespace: kube-system
+  labels:
+    ipam: ipallocator
+spec:
+  template:
+    metadata:
+      labels:
+        ipam: ipallocator
+    spec:
+      hostNetwork: true
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: install-ipallocator-cni
+        image: ipallocator:v0.1
+        command:
+        - /bin/bash
+        - -c
+        - cp -f /etc/ipallocator-cni/10-macvlan.json /etc/cni/net.d/10-macvlan.conf && cp -f /var/lib/ipallocator/bin/ipallocator /opt/cni/bin/
+        volumeMounts:
+        - name: cni
+          mountPath: /etc/cni/net.d
+        - name: cni-bin
+          mountPath: /opt/cni/bin
+        - name: ipallocator-cni-cfg
+          mountPath: /etc/ipallocator-cni/
+      volumes:
+        - name: cni
+          hostPath:
+            path: /etc/cni/net.d
+        - name: cni-bin
+          hostPath:
+            path: /opt/cni/bin
+        - name: ipallocator-cni-cfg
+          configMap:
+            name: ipallocator-cni-cfg

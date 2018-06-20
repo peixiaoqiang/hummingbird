@@ -1,0 +1,55 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: ipallocator-server-config
+  namespace: kube-system
+data:
+  config.conf: |-
+    {
+      "port": 9000,
+      "range_cidr": "",
+      "subnet": "",
+      "base_key": "/ipallocator/podips",
+      "registry_key": "/ipallocator/ipregistry",
+      "etcd_ips": [
+        "http://:2379"
+      ],
+      "routes": [
+        {
+          "dst": "0.0.0.0/0",
+          "gw": ""
+        }
+      ]
+    }
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ipallocator-server
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ipallocator-server
+    spec:
+      hostNetwork: true
+      containers:
+      - name: ipallocator-server
+        image: ipallocator:v0.2
+        command: 
+        - /usr/local/bin/ipallocator_server
+        - -config=/var/lib/ipallocator-server/config.conf 
+        - -alsologtostderr
+        ports:
+        - containerPort: 9000
+        volumeMounts:
+        - mountPath: /var/lib/ipallocator-server
+          name: ipallocator-server
+      volumes:
+      - configMap: 
+          defaultMode: 420
+          name: ipallocator-server-config
+        name: ipallocator-server

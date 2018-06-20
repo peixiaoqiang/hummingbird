@@ -44,7 +44,13 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 	}
 	glog.V(1).Infof("register ip successfully, ip is %v, container_id is %s", assignedIP, ip.ContainerID)
 
-	ipCIDR := net.IPNet{IP: assignedIP, Mask: s.IPAllocator.CIDR().Mask}
+	_, subnetCIDR, err := net.ParseCIDR(config.Subnet)
+	if err != nil {
+		glog.Errorf("network is error: %v", err)
+
+	}
+
+	ipCIDR := net.IPNet{IP: assignedIP, Mask: subnetCIDR.Mask}
 	ipR := &ipallocatorservice.IP{Ip: ipCIDR.String()}
 	if config != nil {
 		if config.Routes != nil {
@@ -91,7 +97,7 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 	storeConfig := &storagebackend.Config{Type: storagebackend.StorageTypeETCD2, ServerList: config.EtcdIps}
 	var rangeRegistry allocator.RangeRegistry
 	var ipRegistry allocator.IPRegistry
-	_, ipRange, _ := net.ParseCIDR(config.CIDR)
+	_, ipRange, _ := net.ParseCIDR(config.RangeCIDR)
 	ipAllocator := ipallocator.NewAllocatorCIDRRange(ipRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
 		etcd := allocator.NewEtcd(mem, config.BaseKey, config.RegistryKey, storeConfig)
@@ -113,7 +119,8 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 
 type Config struct {
 	Port        int      `json:"port"`
-	CIDR        string   `json:"cidr"`
+	Subnet      string   `json:"subnet"`
+	RangeCIDR   string   `json:"range_cidr"`
 	BaseKey     string   `json:"base_key"`
 	RegistryKey string   `json:"registry_key"`
 	EtcdIps     []string `json:"etcd_ips"`

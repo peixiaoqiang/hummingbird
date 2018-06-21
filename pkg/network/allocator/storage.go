@@ -85,6 +85,15 @@ func (e *Etcd) AllocateNext() (int, bool, error) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
+	r, err := e.Get()
+	if err != nil {
+		return 0, false, err
+	}
+
+	e.alloc.Restore(r.Range, r.Data)
 	offset, ok, err := e.alloc.AllocateNext()
 	if !ok || err != nil {
 		return offset, ok, err
@@ -103,7 +112,16 @@ func (e *Etcd) Release(item int) error {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
-	err := e.alloc.Release(item)
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
+	r, err := e.Get()
+	if err != nil {
+		return err
+	}
+	e.alloc.Restore(r.Range, r.Data)
+
+	err = e.alloc.Release(item)
 	if err != nil {
 		return err
 	}

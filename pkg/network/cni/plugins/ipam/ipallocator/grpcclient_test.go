@@ -92,3 +92,19 @@ func getTestClient(t *testing.T) (ipallocatorservice.IPAllocatorClient, func(), 
 		}
 	}, nil
 }
+
+func TestAllocateNextMany(t *testing.T) {
+	client, cleanup, err := getTestClient(t)
+	if err != nil {
+		t.Fatalf("cannot get the client: %v", err)
+	}
+	defer cleanup()
+
+	for i := 0; i < 255; i++ {
+		ip, err := AllocateNext(&skel.CmdArgs{ContainerID: utils.GetRandomString(8)}, client)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(ip)
+	}
+}

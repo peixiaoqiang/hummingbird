@@ -36,6 +36,7 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 		return nil, err
 	}
 
+	// rollback
 	glog.V(1).Infof("start to register, ip is %v, container_id is %s", assignedIP, ip.ContainerID)
 	err = s.IPRegistry.Register(&assignedIP, ip.ContainerID)
 	if err != nil {
@@ -47,6 +48,7 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 	_, subnetCIDR, err := net.ParseCIDR(config.Subnet)
 	if err != nil {
 		glog.Errorf("network is error: %v", err)
+		return nil, err
 
 	}
 
@@ -97,7 +99,11 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 	storeConfig := &storagebackend.Config{Type: storagebackend.StorageTypeETCD2, ServerList: config.EtcdIps}
 	var rangeRegistry allocator.RangeRegistry
 	var ipRegistry allocator.IPRegistry
-	_, ipRange, _ := net.ParseCIDR(config.RangeCIDR)
+	_, ipRange, err := net.ParseCIDR(config.RangeCIDR)
+	if err != nil {
+		glog.Errorf("fail to parse cidr: %v", err)
+		return err
+	}
 	ipAllocator := ipallocator.NewAllocatorCIDRRange(ipRange, func(max int, rangeSpec string) allocator.Interface {
 		mem := allocator.NewContiguousAllocationMap(max, rangeSpec)
 		etcd := allocator.NewEtcd(mem, config.BaseKey, config.RegistryKey, storeConfig)
@@ -106,8 +112,9 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 		return etcd
 	})
 
-	err := rangeRegistry.Init()
+	err = rangeRegistry.Init()
 	if err != nil {
+		glog.Errorf("fail to init range registry: %v", err)
 		return err
 	}
 

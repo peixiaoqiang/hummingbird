@@ -15,7 +15,8 @@ import (
 )
 
 type IPAMConfig struct {
-	ServerIP string `json:"server_ip"`
+	ServerIP string         `json:"server_ip"`
+	Routes   []*types.Route `json:"routes"`
 }
 
 type NetConf struct {
@@ -67,6 +68,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	ipConfig.Address = *address
 	ipConfig.Gateway = net.ParseIP(ip.Gateway)
 	result.IPs = append(result.IPs, ipConfig)
+
 	if ip.Routes != nil {
 		for _, r := range ip.Routes {
 			_, cidr, err := net.ParseCIDR(r.Dst)
@@ -77,6 +79,10 @@ func cmdAdd(args *skel.CmdArgs) error {
 			result.Routes = append(result.Routes, &types.Route{Dst: *cidr, GW: net.ParseIP(r.Gw)})
 		}
 	}
+	if conf.IPAM.Routes != nil {
+		result.Routes = append(result.Routes, conf.IPAM.Routes...)
+	}
+
 	return types.PrintResult(result, conf.CNIVersion)
 }
 

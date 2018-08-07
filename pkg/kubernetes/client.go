@@ -6,10 +6,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func GetClient(kubeconfig string) (*kubernetes.Clientset, error) {
+func GetClient(incluster bool, kubeconfig string) (*kubernetes.Clientset, error) {
 	var config *rest.Config
 	var err error
-	if kubeconfig != "" {
+	if !incluster {
 		// use the current context in kubeconfig
 		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		if err != nil {

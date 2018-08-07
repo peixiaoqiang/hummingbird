@@ -22,13 +22,14 @@ var (
 )
 
 type Conf struct {
-	Namespace       string   `json:"namespace,omitempty"`
-	SparkUIPort     int      `json:"spark_ui_port,omitempty"`
-	Kubeconfig      string   `json:"kubeconfig,omitempty"`
-	EtcdIps         []string `json:"etcd_ips,omitempty"`
-	HttpPort        int      `json:"http_port,omitempty"`
-	SparkHistoryURL string   `json:"spark_history_url,omitempty"`
-	StoragePrefix   string   `json:"storage_prefix,omitempty"`
+	Namespace          string   `json:"namespace,omitempty"`
+	SparkUIPort        int      `json:"spark_ui_port,omitempty"`
+	Kubeconfig         string   `json:"kubeconfig,omitempty"`
+	EtcdIps            []string `json:"etcd_ips,omitempty"`
+	HttpPort           int      `json:"http_port,omitempty"`
+	SparkHistoryURL    string   `json:"spark_history_url,omitempty"`
+	StoragePrefix      string   `json:"storage_prefix,omitempty"`
+	K8SInClusterConfig bool     `json:"k8s_incluster_config,omitempty"`
 }
 
 var CONF = &Conf{

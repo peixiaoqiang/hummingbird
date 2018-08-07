@@ -1,0 +1,42 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: spark-watcher-config
+  namespace: kube-system
+data:
+  config.conf: |-
+    {
+      "port": 9001,
+    }
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: spark-watcher
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: spark-watcher
+    spec:
+      hostNetwork: true
+      containers:
+      - name: spark-watcher
+        image: spark-watcher:v0.1
+        command: 
+        - /usr/local/bin/spark_watcher
+        - -config=/var/lib/spark_watcher/config.conf
+        - -alsologtostderr
+        ports:
+        - containerPort: 9001
+        volumeMounts:
+        - mountPath: /var/lib/spark-watcher
+          name: spark-watcher
+      volumes:
+      - configMap: 
+          defaultMode: 420
+          name: spark-watcher-config
+        name: spark-watcher

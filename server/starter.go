@@ -33,12 +33,13 @@ type Conf struct {
 }
 
 var CONF = &Conf{
-	Namespace:     "default",
-	SparkUIPort:   4040,
-	Kubeconfig:    path.Join(homeDir(), ".kube", "config"),
-	EtcdIps:       []string{"http://localhost:2379"},
-	HttpPort:      9001,
-	StoragePrefix: "/spark",
+	Namespace:          "default",
+	SparkUIPort:        4040,
+	Kubeconfig:         path.Join(homeDir(), ".kube", "config"),
+	EtcdIps:            []string{"http://localhost:2379"},
+	HttpPort:           9001,
+	StoragePrefix:      "/spark",
+	K8SInClusterConfig: false,
 }
 
 func initConfig(configPath string) error {
@@ -70,7 +71,7 @@ func main() {
 
 	initConfig(*conf)
 
-	clientset, err := kubernetes.GetClient(CONF.Kubeconfig)
+	clientset, err := kubernetes.GetClient(CONF.K8SInClusterConfig, CONF.Kubeconfig)
 	if err != nil {
 		glog.Fatalf("fail to get kubernetes client: %v", err)
 	}

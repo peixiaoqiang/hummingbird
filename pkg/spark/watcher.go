@@ -12,9 +12,10 @@ import (
 
 type PodCallback interface {
 	OnAddRunningPod(pod *v1.Pod)
+	OnUpdatePod(oldPod *v1.Pod, newPod *v1.Pod)
 }
 
-func Watch(clientset *kubernetes.Clientset, namespace string, podCB PodCallback) {
+func Watch(clientset *kubernetes.Clientset, namespace string, podCB PodCallback, stopCh <-chan struct{}) {
 	watchlist := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), string(v1.ResourcePods), namespace,
 		fields.Everything())
 	_, controller := cache.NewInformer(
@@ -26,24 +27,32 @@ func Watch(clientset *kubernetes.Clientset, namespace string, podCB PodCallback)
 				pod, ok := obj.(*v1.Pod)
 				if ok {
 					if role, ok := pod.Labels["spark-role"]; ok && role == "driver" {
+						glog.Infof("wait pod %v for running.", pod.Name)
 						go waitPodRunning(clientset, pod, podCB.OnAddRunningPod)
 					}
+				} else {
+					glog.Errorf("fail to receive add of pod %v.", obj)
+				}
+			},
+			UpdateFunc: func(oldObj, newObj interface{}) {
+				newPod, newOk := newObj.(*v1.Pod)
+				oldPod, oldOk := oldObj.(*v1.Pod)
+				if newOk && oldOk {
+					podCB.OnUpdatePod(oldPod, newPod)
+				} else {
+					glog.Errorf("fail to receive update of pod %v.", oldObj)
 				}
 			},
 		},
 	)
 
-	stop := make(chan struct{})
-	defer close(stop)
-	go controller.Run(stop)
-	for {
-		time.Sleep(time.Second)
-	}
+	controller.Run(stopCh)
 }
 
 func waitPodRunning(clientset *kubernetes.Clientset, pod *v1.Pod, callback func(pod *v1.Pod)) {
 	switch status := pod.Status.Phase; status {
 	case v1.PodRunning:
+		glog.Infof("pod %v is running.", pod.Name)
 		callback(pod)
 	case v1.PodPending:
 		doCheckRunning(clientset, pod, callback)
@@ -70,6 +79,7 @@ func doCheckRunning(clientset *kubernetes.Clientset, pod *v1.Pod, callback func(
 				continue
 			}
 			if pod.Status.Phase == v1.PodRunning {
+				glog.Infof("pod %v is running.", pod.Name)
 				callback(&pod)
 				return
 			}

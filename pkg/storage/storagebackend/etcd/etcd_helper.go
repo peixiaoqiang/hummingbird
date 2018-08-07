@@ -67,6 +67,23 @@ func (h *etcdHelper) Create(ctx context.Context, key string, obj storage.Object)
 	return err
 }
 
+func (h *etcdHelper) CreateOrUpdate(ctx context.Context, key string, obj storage.Object) error {
+	if ctx == nil {
+		glog.Errorf("Context is nil")
+	}
+	key = path.Join(h.pathPrefix, key)
+	data, err := encode(obj)
+	if err != nil {
+		return err
+	}
+	opts := etcd.SetOptions{
+		PrevExist: etcd.PrevIgnore,
+	}
+
+	_, err = h.etcdKeysAPI.Set(ctx, key, data, &opts)
+	return err
+}
+
 func encode(obj storage.Object) (string, error) {
 	var out bytes.Buffer
 	enc := gob.NewEncoder(&out)

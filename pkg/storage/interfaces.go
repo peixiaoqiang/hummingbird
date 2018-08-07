@@ -17,6 +17,8 @@ type Interface interface {
 
 	Update(ctx context.Context, key string, obj Object) error
 
+	CreateOrUpdate(ctx context.Context, key string, obj Object) error
+
 	// Delete removes the specified key and returns the value that existed at that spot.
 	// If key didn't exist, it will return NotFound storage error.
 	Delete(ctx context.Context, key string) error

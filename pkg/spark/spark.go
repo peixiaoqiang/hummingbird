@@ -37,11 +37,12 @@ type AppAttempt struct {
 }
 
 type Application struct {
-	ID       string       `json:"id,omitempty"`
-	Name     string       `json:"name,omitempty"`
-	DriverIP string       `json:"driver_ip,omitempty"`
-	Jobs     []Job        `json:"jobs,omitempty"`
-	Attempts []AppAttempt `json:"attempts,omitempty"`
+	ID               string       `json:"id,omitempty"`
+	Name             string       `json:"name,omitempty"`
+	DriverIP         string       `json:"driver_ip,omitempty"`
+	Jobs             []Job        `json:"jobs,omitempty"`
+	Attempts         []AppAttempt `json:"attempts,omitempty"`
+	HistoryServerURL string       `json:"history_server_url,omitempty"`
 }
 
 func (handler *ApplicationHandler) getApplicationID(driverIP string) (string, error) {
@@ -122,18 +123,21 @@ func (handler *ApplicationHandler) GetApplication(appName string) (*Application,
 	if err != nil {
 		return nil, err
 	}
-	status := ""
-	handler.Storage.Get(context.TODO(), path.Join(handler.StoragePathPrefix, "status", appName), &status)
-	url := fmt.Sprintf("http://%v/api/v1/applications/%v", handler.SparkHistoryURL, app.ID)
-	// If pod is running, it will retrieve application from spark history server
-	if status == string(v1.PodRunning) {
-		url = fmt.Sprintf("http://%s:%d/api/v1/applications/%v", app.DriverIP, handler.SparkUIPort, app.ID)
+	if app.ID != "" {
+		status := ""
+		handler.Storage.Get(context.TODO(), path.Join(handler.StoragePathPrefix, "status", appName), &status)
+		url := fmt.Sprintf("http://%v/api/v1/applications/%v", handler.SparkHistoryURL, app.ID)
+		// If pod is running, it will retrieve application from spark history server
+		if status == string(v1.PodRunning) {
+			url = fmt.Sprintf("http://%s:%d/api/v1/applications/%v", app.DriverIP, handler.SparkUIPort, app.ID)
+		}
+		app, err = handler.getApplication(url)
+		if err != nil {
+			return nil, err
+		}
+		app.HistoryServerURL = url
+		app.Name = appName
 	}
-	app, err = handler.getApplication(url)
-	if err != nil {
-		return nil, err
-	}
-	app.Name = appName
 	return app, nil
 }
 

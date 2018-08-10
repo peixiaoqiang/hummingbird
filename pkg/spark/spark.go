@@ -14,11 +14,21 @@ import (
 )
 
 type Job struct {
-	ID             int    `json:"jobId,omitempty"`
-	Name           string `json:"name,omitempty"`
-	Status         string `json:"status,omitempty"`
-	NumActiveTasks int    `json:"numActiveTasks,omitempty"`
-	NumTasks       int    `json:"numTasks,omitempty"`
+	ID                  int    `json:"jobId,omitempty"`
+	Name                string `json:"name,omitempty"`
+	Status              string `json:"status,omitempty"`
+	NumActiveTasks      int    `json:"numActiveTasks,omitempty"`
+	NumTasks            int    `json:"numTasks,omitempty"`
+	NumCompletedTasks   int    `json:"numCompletedTasks,omitempty"`
+	NumSkippedTasks     int    `json:"numSkippedTasks,omitempty"`
+	NumFailedTasks      int    `json:"numFailedTasks,omitempty"`
+	NumKilledTasks      int    `json:"numKilledTasks,omitempty"`
+	NumCompletedIndices int    `json:"numCompletedIndices,omitempty"`
+	NumActiveStages     int    `json:"numActiveStages,omitempty"`
+	NumCompletedStages  int    `json:"numCompletedStages,omitempty"`
+	NumSkippedStages    int    `json:"numSkippedStages,omitempty"`
+	NumFailedStages     int    `json:"numFailedStages,omitempty"`
+	killedTasksSummary  int    `json:"killedTasksSummary,omitempty"`
 }
 
 type AppAttempt struct {

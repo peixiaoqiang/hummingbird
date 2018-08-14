@@ -1,20 +1,22 @@
 package main
 
 import (
-	"net/http"
-	"flag"
-	"strings"
-	"os"
-	"sync"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"io/ioutil"
-	"github.com/golang/glog"
+	"net/http"
+	"os"
+	"path"
+	"strings"
+	"sync"
+
 	"github.com/TalkingData/hummingbird/pkg/kubernetes"
 	"github.com/TalkingData/hummingbird/pkg/spark"
-	"path"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/factory"
-	"fmt"
+	"github.com/golang/glog"
+	etcd "github.com/coreos/etcd/client"
 )
 
 var (
@@ -114,14 +116,20 @@ func handleApplication(w http.ResponseWriter, r *http.Request) {
 	glog.Infof("receive request of %v.", appName)
 	app, err := SparkHandler.GetApplication(appName)
 	if err != nil {
-		glog.Errorf("fail to get spark application, application name is %v, error is %v.", appName, err)
-		w.WriteHeader(500)
-		return
+		if nerr, ok := err.(etcd.Error); ok && nerr.Code == etcd.ErrorCodeKeyNotFound {
+			glog.Infof("can not found spark application %v.", appName)
+			w.WriteHeader(404)
+			return
+		} else {
+			glog.Errorf("fail to get spark application, application name is %v, error is %v.", appName, err)
+			w.WriteHeader(400)
+			return
+		}
 	}
 	appJson, err := json.Marshal(app)
 	if err != nil {
 		glog.Errorf("fail to serialize spark application, application name is %v, error is %v.", appName, err)
-		w.WriteHeader(500)
+		w.WriteHeader(400)
 		return
 	} else {
 		glog.Infof("response of %v is %v", appName, string(appJson))

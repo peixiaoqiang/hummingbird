@@ -1,14 +1,17 @@
 # Hummingbird
-Hummingbird is a big data computing and microservices platform based on Kubernetes. It includes deployment architecture, deployment tools, integration tools for Spark and Kubernetes, and some custom components.
-
-## Getting Started
+[![Go Report Card](https://goreportcard.com/badge/github.com/TalkingData/hummingbird)](https://goreportcard.com/report/github.com/TalkingData/hummingbird)
+## Overview
+Hummingbird is designed to a big data computing and microservices platform based on Kubernetes. It includes deployment architecture, deployment tools, integration tools for Spark and Kubernetes, and some custom components, such as ipallocator, spark watcher.
+## IPAllocator
+IPAllocator is a Kubernetes CNI plugin to manage ips. It uses bitmap mechanism to allocate ip and applies etcd as storeage backend.
+### Getting Started
 Run ipallocator server:
 
 ```
 $ go run pkg/network/allocator/server/ipallocator_server.go -config=etc/ipallocator.conf
 ```
 
-Grpc with server:
+Communicate with server:
 
 ```
 import (
@@ -43,9 +46,36 @@ func TestRelease(t *testing.T) {
 	}
 }
 ```
+
+Install CNI Plugin:
+
+```
+$ go build -o /opt/cni/bin/ipallocator github.com/TalkingData/hummingbird/pkg/network/cni/plugins/ipam/ipallocator
+
+$ cat /etc/cni.d/10-macvlan.json
+{
+  "name": "macvlan",
+  "type": "macvlan",
+  "master": "eth2",
+  "mode": "bridge",
+  "ipam": {
+    "type": "ipallocator",
+    "server_ip": ""
+  }
+}
+```
+Or yuo can use yaml file to install it in Kubernetes:
+
+```
+$ ./tools/bash.sh <tag> <repo-server>
+# Change your yaml
+$ kubectl apply -f tools/ipallocator-server.yaml tools/ipallocator-cni.yaml
+```
+## Spark Watcher
+Spark Wacher is a watcher based on Kubernetes Watcher API that enable to watch spark driver pod to retrieve and store spark application information. There is also a http server to access. You can find more details in [spark-watcher](spark/README.md).
 ## Requirements
 ### Version
-Kubernetes version v1.9.x.
+Kubernetes version v1.9.x+.
 ## License
 The project is Open Source software released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).
 

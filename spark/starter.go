@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"path"
-	"strings"
 	"sync"
 
 	"github.com/TalkingData/hummingbird/pkg/kubernetes"
@@ -17,6 +16,7 @@ import (
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/factory"
 	"github.com/golang/glog"
 	etcd "github.com/coreos/etcd/client"
+	"github.com/gorilla/mux"
 )
 
 var (
@@ -101,7 +101,10 @@ func main() {
 	waitgroup.Add(1)
 	go func() {
 		defer waitgroup.Done()
-		http.HandleFunc("/applications/", handleApplication)
+		r := mux.NewRouter()
+		r.Path("/applications/{name}").HandlerFunc(applicationHandler)
+		r.Path("/applications/{name}").Queries("callback", "{.*}").HandlerFunc(applicationHandler)
+		http.Handle("/", r)
 		glog.Infof("Start server on %v", CONF.HttpPort)
 		glog.Error(http.ListenAndServe(fmt.Sprintf(":%v", CONF.HttpPort), nil))
 	}()
@@ -109,10 +112,9 @@ func main() {
 	waitgroup.Wait()
 }
 
-func handleApplication(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
-	i := strings.LastIndex(path, "/")
-	appName := path[i+1:]
+func applicationHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	appName := vars["name"]
 	glog.Infof("receive request of %v.", appName)
 	app, err := SparkHandler.GetApplication(appName)
 	if err != nil {
@@ -133,6 +135,11 @@ func handleApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		glog.Infof("response of %v is %v", appName, string(appJson))
-		w.Write(appJson)
+		callback, ok := r.URL.Query()["callback"]
+		if ok {
+			w.Write([]byte(fmt.Sprintf("%s(%s)", callback[0], appJson)))
+		} else {
+			w.Write(appJson)
+		}
 	}
 }

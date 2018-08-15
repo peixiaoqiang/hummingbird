@@ -1,5 +1,5 @@
-hash: 982dcd4ca7704f8ef4e258d9a2814223caf1ade1e1474e4ef9bf2874602e2cb1
-updated: 2018-08-02T23:08:05.75381+08:00
+hash: f11f44ca9a3cd90d1b59664375e9f4d6f7d1591d74a12be9da9030636727988f
+updated: 2018-08-15T11:05:58.009084+08:00
 imports:
 - name: github.com/containernetworking/cni
   version: a7885cb6f8ab03fba07852ded351e4f5e7a112bf
@@ -54,6 +54,8 @@ imports:
   - OpenAPIv2
   - compiler
   - extensions
+- name: github.com/gorilla/mux
+  version: e3702bed27f0d39777b0b37b664b6280e8ef8fbf
 - name: github.com/gregjones/httpcache
   version: 787624de3eb7bd915c329cba748687a3b22666a6
   subpackages:

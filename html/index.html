@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>spark-watch-ui</title>
+<link rel="stylesheet" href="libs/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="index.css">
+</head>
+<body>
+	<div class="spark-watch-title">
+		Spark On k8s
+	</div>
+  <div class="spark-watch">
+  	<form class="form-horizontal">
+		  <div class="form-group">
+		    <input placeholder="例如：spark-pi-e89a2d2752e433f189669d76c57db53a-driver" type="text" class="form-control" id="appid" aria-describedby="basic-addon3">
+		  </div>
+		</form>
+		<button id="submit" type="submit" class="btn btn-default">查询</button>
+  </div>
+  <div class="show-detail">
+  	<table class="table table-bordered">
+  		<tr>
+  			<th width="150px">id</th>
+  			<th><span id="app_id"></span></th>
+  		</tr>
+  		<tr>
+  			<td>name</td>
+  			<td><span id="app_name"></span></td>
+  		</tr>
+  		<tr>
+  			<td>status</td>
+  			<td><span id="app_status"></span></td>
+  		</tr>
+  		<tr>
+  			<td>startTime</td>
+  			<td><span id="app_start"></span></td>
+  		</tr>
+  		<tr>
+  			<td>endTime</td>
+  			<td><span id="app_end"></span></td>
+  		</tr>
+  		<tr>
+  			<td>driver</td>
+  			<td><span id="a_link"></span></td>
+  		</tr>
+  		<tr>
+  			<td>history_server_url</td>
+  			<td><span id="app_url"></span></td>
+  		</tr>
+		</table>
+  </div>
+</body>
+<script src="libs/jquery.min.js"></script>
+<script src="libs/bootstrap.min.js"></script>
+<script type="text/javascript">
+	$('#submit').click(function() {
+		var appid = $('#appid').val();
+		// 重置数据
+		$('#a_link').html('');
+		$('#app_url').html('');
+		$('.show-detail').eq(0).css('display', 'none');
+		if (appid) {
+			var appidUrl = 'http://localhost:9001/applications/' + appid;
+			$.ajax({
+				type: "get",
+			  url: appidUrl,
+			  dataType: "jsonp",
+			  jsonp: "callback",
+			  success: function(res){
+		     	var allUrl = res.history_server_url;
+	     		if (allUrl) {
+						// driver跳转
+						var linkUrl = 'http://' + res.driver_ip + ':' + '4040';
+						var aEle = '<a target="_blank" href="' + linkUrl + '">'+ linkUrl +'</a>';
+						$('#a_link').append($(aEle));
+						$('#app_id').text(res.id);
+						$('#app_name').text(res.name);
+						$('#app_status').text(res.status);
+						$('#app_start').text(res.start_time);
+						$('#app_end').text(res.end_time);
+						var arr = allUrl.split(':');
+						if (arr.length > 2) {
+							var portArr = arr[2].split('/');
+							var server_url = arr[0] + ':' + arr[1] + ':' + portArr[0];
+							var server_urlEle = '<a target="_blank" href="' + server_url + '">'+ server_url +'</a>';
+							$('#app_url').append($(server_urlEle));
+						} else {
+							$('#app_url').text(res.history_server_url);
+						}
+						$('.show-detail').eq(0).css('display', 'block');
+	     		}
+		   	},
+		   	error: function(err){
+		     	$('.show-detail').eq(0).css('display', 'none');
+		     	if (err) {
+		     		window.alert('请检查您的输入是否正确');
+		     	}
+		   	},
+			});
+		} else {
+			window.alert('请输入响应的id再查询');
+		}
+	});
+</script>
+</html>

@@ -1,0 +1,28 @@
+.spark-watch-title {
+	text-align: center;
+	padding: 20px 0;
+	font-weight: bold;
+	font-size: 24px;
+
+}
+.spark-watch {
+	width: 80%;
+	margin: 50px auto 20px;
+	box-sizing: border-box;
+}
+.spark-watch .form-horizontal .form-group {
+	margin-left: 0;
+	margin-right: 0;
+}
+.show-area {
+	width: 80%;
+	margin: 0 auto;
+}
+.show-detail {
+	width: 80%;
+	margin: 10px auto;
+	display: none;
+}
+.show-detail th {
+	font-weight: normal;
+}

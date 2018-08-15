@@ -32,6 +32,9 @@ type Conf struct {
 	SparkHistoryURL    string   `json:"spark_history_url,omitempty"`
 	StoragePrefix      string   `json:"storage_prefix,omitempty"`
 	K8SInClusterConfig bool     `json:"k8s_incluster_config,omitempty"`
+	UIDir              string   `json:"ui_dir,omitempty"`
+	UIPort             int      `json:"ui_port,omitempty"`
+	EnableUI           bool     `json:"enable_ui,omitempty"`
 }
 
 var CONF = &Conf{
@@ -42,6 +45,9 @@ var CONF = &Conf{
 	HttpPort:           9001,
 	StoragePrefix:      "/spark",
 	K8SInClusterConfig: false,
+	UIDir:              "./html",
+	UIPort:             80,
+	EnableUI:           false,
 }
 
 func initConfig(configPath string) error {
@@ -104,10 +110,18 @@ func main() {
 		r := mux.NewRouter()
 		r.Path("/applications/{name}").HandlerFunc(applicationHandler)
 		r.Path("/applications/{name}").Queries("callback", "{.*}").HandlerFunc(applicationHandler)
-		http.Handle("/", r)
 		glog.Infof("Start server on %v", CONF.HttpPort)
-		glog.Error(http.ListenAndServe(fmt.Sprintf(":%v", CONF.HttpPort), nil))
+		glog.Error(http.ListenAndServe(fmt.Sprintf(":%v", CONF.HttpPort), r))
 	}()
+
+	if CONF.EnableUI {
+		waitgroup.Add(1)
+		go func() {
+			defer waitgroup.Done()
+			glog.Infof("Start ui server on %v", CONF.UIPort)
+			glog.Error(http.ListenAndServe(fmt.Sprintf(":%v", CONF.UIPort), http.FileServer(http.Dir(CONF.UIDir))))
+		}()
+	}
 
 	waitgroup.Wait()
 }

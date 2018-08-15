@@ -45,7 +45,7 @@ var CONF = &Conf{
 	HttpPort:           9001,
 	StoragePrefix:      "/spark",
 	K8SInClusterConfig: false,
-	UIDir:              "./html",
+	UIDir:              "/usr/local/spark-watch/html",
 	UIPort:             80,
 	EnableUI:           false,
 }

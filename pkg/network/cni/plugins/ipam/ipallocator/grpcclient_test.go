@@ -4,9 +4,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 	"github.com/TalkingData/hummingbird/pkg/utils"
 	"github.com/containernetworking/cni/pkg/skel"
-	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 
 	"google.golang.org/grpc"
 )

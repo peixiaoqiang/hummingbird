@@ -19,11 +19,12 @@ package allocator
 import (
 	"context"
 	"errors"
+	"net"
+	"sync"
+
 	"github.com/TalkingData/hummingbird/pkg/storage"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/factory"
-	"net"
-	"sync"
 )
 
 var (
@@ -116,13 +117,14 @@ func (e *Etcd) Release(item int) error {
 	return nil
 }
 
+// ForEach implements loop
 func (e *Etcd) ForEach(fn func(int)) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 	e.alloc.ForEach(fn)
 }
 
-// Implements allocator.Interface::Has
+// Has implements allocator.Interface::Has
 func (e *Etcd) Has(item int) bool {
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -130,7 +132,7 @@ func (e *Etcd) Has(item int) bool {
 	return e.alloc.Has(item)
 }
 
-// Implements allocator.Interface::Free
+// Free implements allocator.Interface::Free
 func (e *Etcd) Free() int {
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -148,6 +150,7 @@ func (e *Etcd) Get() (*RangeAllocation, error) {
 	return existing, nil
 }
 
+// Init does the storage initialization.
 func (e *Etcd) Init() error {
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -165,6 +168,7 @@ func (e *Etcd) Init() error {
 	return err
 }
 
+// ClearRangeRegistry cleanups the range registry.
 func (e *Etcd) ClearRangeRegistry() error {
 	e.lock.Lock()
 	defer e.lock.Unlock()
@@ -180,11 +184,13 @@ func (e *Etcd) update() error {
 	return err
 }
 
+// Register registers specified ip to id in storage.
 func (e *Etcd) Register(ip *net.IP, id string) error {
 	err := e.storage.Create(context.TODO(), e.registryKey+"/"+id, ip.String())
 	return err
 }
 
+// Deregister 
 func (e *Etcd) Deregister(id string) error {
 	return e.storage.Delete(context.TODO(), e.registryKey+"/"+id)
 }

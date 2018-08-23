@@ -1,8 +1,8 @@
-# Spark Watcher
-Spark Wacher is a watcher based on Kubernetes Watcher API that enable to watch spark driver pod to retrieve and store spark application information. There is also a http server to access.
+# Spark Controller
+Spark Controller is a controller based on Kubernetes Informer that enable to watch spark driver pod to retrieve and store spark application information. There is also a http server to access.
 
 ## Getting Started
-Run watcher and http server:
+Run controller and http server:
 
 ```
 go run spark/starter.go -conf config.conf
@@ -11,9 +11,9 @@ go run spark/starter.go -conf config.conf
 Or you can build docker image and then start it in Kubernetes using yaml:
 
 ```
-$ bash tools/spark-watcher/build.sh spark-watcher:v0.1 <repo-server>
+$ bash tools/spark-controller/build.sh spark-controller:v0.1 <repo-server>
 // Please change the namespace you want to watch
-$ kubectl apply -f tools/spark-watcher.yaml
+$ kubectl apply -f tools/spark-controller.yaml
 ```
 
 You are able to get spark application information by:
@@ -40,14 +40,14 @@ $ curl http://localhost:9001/applications/<spark-driver-pod-name>
 }
 ```
 ## How it works
-Spark Watcher starts two goroutine, they are **spark watch** and **http server**.
-### Spark Watch
-Spark Watch use Kubernetes Watch to observe Kubernetes pods events including `Add` and `Update`:
+Spark Controller starts two goroutine, they are **spark controller** and **http server**.
+### Spark Controller
+Spark Controller use Kubernetes Informer to observe Kubernetes pods events including `Add` and `Update`:
 
 ```
-github.com/TalkingData/hummingbird/pkg/spark/watcher.go:18
+github.com/TalkingData/hummingbird/pkg/spark/controller.go:18
 
-func Watch(clientset *kubernetes.Clientset, namespace string, podCB PodCallback, stopCh <-chan struct{}) {
+func Run(clientset *kubernetes.Clientset, namespace string, podCB PodCallback, stopCh <-chan struct{}) {
 	watchlist := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), string(v1.ResourcePods), namespace,
 		fields.Everything())
 	_, controller := cache.NewInformer(
@@ -72,7 +72,7 @@ func Watch(clientset *kubernetes.Clientset, namespace string, podCB PodCallback,
 When one runs a spark application on Kuberentes, `AddFunc` will be triggered. `Watch` will filter spark driver pod out and wait it to become running. Then, it will callback interface which impelements `PodCallback`:
 
 ```
-github.com/TalkingData/hummingbird/pkg/spark/watcher.go:13
+github.com/TalkingData/hummingbird/pkg/spark/controller.go:13
 
 type PodCallback interface {
 	OnAddRunningPod(pod *v1.Pod)
@@ -84,7 +84,7 @@ The default is `ApplicationHandler` in `pkg/spark/spark.go`. This handler is des
 The process of handling `Update` event is simple, it just store the status of spark driver pod.
 
 ### Http Server
-Watcher Server serves http api request, it only has one handler `handleApplication` routing `/applications/<spark-driver-pod-name>`. When receives request, the function will first get spark application id from the storage by `spark-driver-pod-name`. Subsequently, if the driver pod is running, it will get spark application information from spark driver ui as same as above. Otherwise, the information will be retrieved from spark history which is setup in advance.
+Controller Server serves http api request, it only has one handler `handleApplication` routing `/applications/<spark-driver-pod-name>`. When receives request, the function will first get spark application id from the storage by `spark-driver-pod-name`. Subsequently, if the driver pod is running, it will get spark application information from spark driver ui as same as above. Otherwise, the information will be retrieved from spark history which is setup in advance.
 
 ## License
 The project is Open Source software released under the [Apache 2.0 license](http://www.apache.org/licenses/LICENSE-2.0.html).

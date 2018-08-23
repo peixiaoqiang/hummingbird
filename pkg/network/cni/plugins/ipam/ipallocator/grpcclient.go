@@ -4,9 +4,9 @@ import (
 	"log"
 	"time"
 
-	"golang.org/x/net/context"
 	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 	"github.com/containernetworking/cni/pkg/skel"
+	"golang.org/x/net/context"
 )
 
 func AllocateNext(args *skel.CmdArgs, client ipallocatorservice.IPAllocatorClient) (*ipallocatorservice.IP, error) {

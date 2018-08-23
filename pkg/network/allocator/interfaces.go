@@ -65,19 +65,23 @@ type RangeRegistry interface {
 	ClearRangeRegistry() error
 }
 
-type AllocatorFactory func(max int, rangeSpec string) Interface
+// Factory represents a allocator factory to create allocator.
+type Factory func(max int, rangeSpec string) Interface
 
+// IP represents a ip.
 type IP struct {
 	IP      *net.IPNet
 	Gateway net.IP
 	Routes  []*Route
 }
 
+// Route represents a route rule.
 type Route struct {
 	Dst *net.IPNet
 	GW  net.IP
 }
 
+// IPRegistry represents a ip registry to manipulate ip.
 type IPRegistry interface {
 	Register(*net.IP, string) error
 	Deregister(string) error

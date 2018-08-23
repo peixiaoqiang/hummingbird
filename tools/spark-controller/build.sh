@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-image="spark-watcher:$1"
+image="spark-controller:$1"
 repo_server=$2
 
-go build -o spark-watcher $GOPATH/src/github.com/TalkingData/hummingbird/spark/starter.go
+go build -o spark-controller $GOPATH/src/github.com/TalkingData/hummingbird/spark/starter.go
 
 docker build -t $image .
 docker tag $image $repo_server/$image

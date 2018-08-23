@@ -14,8 +14,8 @@ import (
 	"github.com/TalkingData/hummingbird/pkg/spark"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend"
 	"github.com/TalkingData/hummingbird/pkg/storage/storagebackend/factory"
-	"github.com/golang/glog"
 	etcd "github.com/coreos/etcd/client"
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 )
 
@@ -101,7 +101,7 @@ func main() {
 		stop := make(chan struct{})
 		defer close(stop)
 		glog.Infoln("Start watching.")
-		spark.Watch(clientset, CONF.Namespace, SparkHandler, stop)
+		spark.Run(clientset, CONF.Namespace, SparkHandler, stop)
 	}()
 
 	waitgroup.Add(1)

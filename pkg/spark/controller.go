@@ -12,7 +12,7 @@ type PodCallback interface {
 	OnUpdateStatusPod(pod *v1.Pod)
 }
 
-func Watch(clientset *kubernetes.Clientset, namespace string, podCB PodCallback, stopCh <-chan struct{}) {
+func Run(clientset *kubernetes.Clientset, namespace string, podCB PodCallback, stopCh <-chan struct{}) {
 	watchlist := cache.NewListWatchFromClient(clientset.CoreV1().RESTClient(), string(v1.ResourcePods), namespace,
 		fields.Everything())
 	_, controller := cache.NewInformer(

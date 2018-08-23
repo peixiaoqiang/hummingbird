@@ -19,9 +19,10 @@ package ipallocator
 import (
 	"errors"
 	"fmt"
-	"github.com/TalkingData/hummingbird/pkg/network/allocator"
 	"math/big"
 	"net"
+
+	"github.com/TalkingData/hummingbird/pkg/network/allocator"
 )
 
 // Interface manages the allocation of IP addresses out of a range. Interface
@@ -37,11 +38,15 @@ type Interface interface {
 }
 
 var (
-	ErrFull              = errors.New("range is full")
-	ErrAllocated         = errors.New("provided IP is already allocated")
+	// ErrFull represents a error that happens when range is full.
+	ErrFull = errors.New("range is full")
+	// ErrAllocated represents a error that happens when provider ip is already allocated.
+	ErrAllocated = errors.New("provided IP is already allocated")
+	// ErrMismatchedNetwork represents a error that happens when provider network does not match the current range.
 	ErrMismatchedNetwork = errors.New("the provided network does not match the current range")
 )
 
+// ErrNotInRange represents a error that happens when data is not in range.
 type ErrNotInRange struct {
 	ValidRange string
 }
@@ -77,7 +82,7 @@ type Range struct {
 }
 
 // NewAllocatorCIDRRange creates a Range over a net.IPNet, calling allocatorFactory to construct the backing store.
-func NewAllocatorCIDRRange(cidr *net.IPNet, allocatorFactory allocator.AllocatorFactory) *Range {
+func NewAllocatorCIDRRange(cidr *net.IPNet, allocatorFactory allocator.Factory) *Range {
 	max := RangeSize(cidr)
 	base := bigForIP(cidr.IP)
 	rangeSpec := cidr.String()
@@ -91,7 +96,7 @@ func NewAllocatorCIDRRange(cidr *net.IPNet, allocatorFactory allocator.Allocator
 	return &r
 }
 
-// Helper that wraps NewAllocatorCIDRRange, for creating a range backed by an in-memory store.
+// NewCIDRRange Helper that wraps NewAllocatorCIDRRange, for creating a range backed by an in-memory store.
 func NewCIDRRange(cidr *net.IPNet) *Range {
 	return NewAllocatorCIDRRange(cidr, func(max int, rangeSpec string) allocator.Interface {
 		return allocator.NewAllocationMap(max, rangeSpec)
@@ -231,9 +236,8 @@ func RangeSize(subnet *net.IPNet) int64 {
 	// the bitmap to 64k.
 	if bits == 128 && (bits-ones) >= 16 {
 		return int64(1) << uint(16)
-	} else {
-		return int64(1) << uint(bits-ones)
 	}
+	return int64(1) << uint(bits-ones)
 }
 
 // GetIndexedIP returns a net.IP that is subnet.IP + index in the contiguous IP space.

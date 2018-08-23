@@ -21,12 +21,14 @@ import (
 var configPath = flag.String("config", "", "The ipallocator server config path")
 var config *Config
 
+// IPAllocatorServer represents a ipallocator server to handle request.
 type IPAllocatorServer struct {
 	IPAllocator   *ipallocator.Range
 	IPRegistry    allocator.IPRegistry
 	RangeRegistry allocator.RangeRegistry
 }
 
+// AllocateNext allocates next available ip.
 func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorservice.IP) (*ipallocatorservice.IP, error) {
 	glog.Infof("start to allocate ip for container %s", ip.ContainerID)
 	assignedIP, err := s.IPAllocator.AllocateNext()
@@ -69,6 +71,7 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 	return ipR, nil
 }
 
+// Release releases specified ip.
 func (s *IPAllocatorServer) Release(ctx context.Context, ip *ipallocatorservice.IP) (*ipallocatorservice.Blank, error) {
 	glog.Infof("start to release ip, ip is %v", ip)
 	ipReg, err := s.IPRegistry.GetIP(ip.ContainerID)
@@ -124,6 +127,7 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 	return nil
 }
 
+// Config represents a server config.
 type Config struct {
 	Port        int      `json:"port"`
 	Subnet      string   `json:"subnet"`
@@ -135,6 +139,7 @@ type Config struct {
 	Gateway     string   `json:"gateway"`
 }
 
+// Route represents a route rule.
 type Route struct {
 	Dst string `json:"dst"`
 	Gw  string `json:"gw"`

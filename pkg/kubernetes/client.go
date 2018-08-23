@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// GetClient get a client of Kubernetes client-go
 func GetClient(incluster bool, kubeconfig string) (*kubernetes.Clientset, error) {
 	var config *rest.Config
 	var err error

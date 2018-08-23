@@ -7,11 +7,11 @@ import (
 
 	"google.golang.org/grpc"
 
+	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
-	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 )
 
 type IPAMConfig struct {

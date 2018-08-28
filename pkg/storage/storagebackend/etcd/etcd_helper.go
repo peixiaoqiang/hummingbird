@@ -174,7 +174,7 @@ func (h *etcdHelper) Update(ctx context.Context, key string, objPtr storage.Obje
 func (h *etcdHelper) Lock(ctx context.Context) (err error) {
 	h.mutex.Lock()
 	for try := 1; try <= defaultTry; try++ {
-		if h.lock(ctx) == nil {
+		if err = h.lock(ctx); err == nil {
 			return nil
 		}
 	}
@@ -190,12 +190,9 @@ func (h *etcdHelper) lock(ctx context.Context) (err error) {
 	if err == nil {
 		return nil
 	}
-	e, ok := err.(etcd.Error)
-	if !ok {
-		return err
-	}
 
-	if e.Code != etcd.ErrorCodeNodeExist {
+	e, ok := err.(etcd.Error)
+	if !ok || e.Code != etcd.ErrorCodeNodeExist {
 		return err
 	}
 
@@ -204,6 +201,7 @@ func (h *etcdHelper) lock(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
+
 	watcherOptions := &etcd.WatcherOptions{
 		AfterIndex: resp.Index,
 		Recursive:  false,
@@ -219,7 +217,6 @@ func (h *etcdHelper) lock(ctx context.Context) (err error) {
 			return nil
 		}
 	}
-
 }
 
 // Unlock unlocks m.
@@ -230,11 +227,13 @@ func (h *etcdHelper) lock(ctx context.Context) (err error) {
 // arrange for another goroutine to unlock it.
 func (h *etcdHelper) Unlock(ctx context.Context) (err error) {
 	defer h.mutex.Unlock()
+
 	for i := 1; i <= defaultTry; i++ {
 		_, err = h.etcdKeysAPI.Delete(ctx, h.lockKey, nil)
 		if err == nil {
 			return nil
 		}
+
 		e, ok := err.(etcd.Error)
 		if ok && e.Code == etcd.ErrorCodeKeyNotFound {
 			return nil

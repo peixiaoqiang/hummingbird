@@ -67,6 +67,15 @@ func (e *Etcd) Allocate(offset int) (bool, error) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
+	r, err := e.Get()
+	if err != nil {
+		return false, err
+	}
+
+	e.alloc.Restore(r.Range, r.Data)
 	ok, err := e.alloc.Allocate(offset)
 	if !ok || err != nil {
 		return ok, err
@@ -82,11 +91,11 @@ func (e *Etcd) Allocate(offset int) (bool, error) {
 
 // AllocateNext attempts to allocate the next item locally and then in etcd.
 func (e *Etcd) AllocateNext() (int, bool, error) {
-	e.lock.Lock()
-	defer e.lock.Unlock()
-
 	e.storage.Lock(context.TODO())
 	defer e.storage.Unlock(context.TODO())
+
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	r, err := e.Get()
 	if err != nil {
@@ -109,11 +118,11 @@ func (e *Etcd) AllocateNext() (int, bool, error) {
 
 // Release attempts to release the provided item locally and then in etcd.
 func (e *Etcd) Release(item int) error {
-	e.lock.Lock()
-	defer e.lock.Unlock()
-
 	e.storage.Lock(context.TODO())
 	defer e.storage.Unlock(context.TODO())
+
+	e.lock.Lock()
+	defer e.lock.Unlock()
 
 	r, err := e.Get()
 	if err != nil {
@@ -135,13 +144,20 @@ func (e *Etcd) Release(item int) error {
 }
 
 func (e *Etcd) ForEach(fn func(int)) {
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
+
 	e.alloc.ForEach(fn)
 }
 
 // Implements allocator.Interface::Has
 func (e *Etcd) Has(item int) bool {
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -150,6 +166,9 @@ func (e *Etcd) Has(item int) bool {
 
 // Implements allocator.Interface::Free
 func (e *Etcd) Free() int {
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -167,6 +186,9 @@ func (e *Etcd) Get() (*RangeAllocation, error) {
 }
 
 func (e *Etcd) Init() error {
+	e.storage.Lock(context.TODO())
+	defer e.storage.Unlock(context.TODO())
+
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
@@ -179,16 +201,11 @@ func (e *Etcd) Init() error {
 			return err
 		}
 	}
-	err = e.alloc.Restore(r.Range, r.Data)
-	return err
+	return e.alloc.Restore(r.Range, r.Data)
 }
 
 func (e *Etcd) ClearRangeRegistry() error {
-	e.lock.Lock()
-	defer e.lock.Unlock()
-
-	err := e.storage.Delete(context.TODO(), e.baseKey)
-	return err
+	return e.storage.Delete(context.TODO(), e.baseKey)
 }
 
 func (e *Etcd) update() error {
@@ -199,8 +216,7 @@ func (e *Etcd) update() error {
 }
 
 func (e *Etcd) Register(ip *net.IP, id string) error {
-	err := e.storage.Create(context.TODO(), e.registryKey+"/"+id, ip.String())
-	return err
+	return e.storage.Create(context.TODO(), e.registryKey+"/"+id, ip.String())
 }
 
 func (e *Etcd) Deregister(id string) error {
@@ -208,11 +224,7 @@ func (e *Etcd) Deregister(id string) error {
 }
 
 func (e *Etcd) ClearIPRegistry() error {
-	e.lock.Lock()
-	defer e.lock.Unlock()
-
-	err := e.storage.Delete(context.TODO(), e.registryKey)
-	return err
+	return e.storage.Delete(context.TODO(), e.registryKey)
 }
 
 func (e *Etcd) GetIP(id string) (*net.IP, error) {

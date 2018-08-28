@@ -1,7 +1,7 @@
 # Hummingbird
 [![Go Report Card](https://goreportcard.com/badge/github.com/TalkingData/hummingbird)](https://goreportcard.com/report/github.com/TalkingData/hummingbird)
 ## Overview
-Hummingbird is designed to a big data computing and microservices platform based on Kubernetes. It includes deployment architecture, deployment tools, integration tools for Spark and Kubernetes, and some custom components, such as ipallocator, spark watcher.
+Hummingbird is designed to a big data computing and microservices platform based on Kubernetes. It includes deployment architecture, deployment tools, integration tools for Spark and Kubernetes, and some custom components, such as ipallocator, spark controller.
 ## IPAllocator
 IPAllocator is a Kubernetes CNI plugin to manage ips. It uses bitmap mechanism to allocate ip and applies etcd as storeage backend.
 ### Getting Started
@@ -71,8 +71,8 @@ $ ./tools/bash.sh <tag> <repo-server>
 # Change your yaml
 $ kubectl apply -f tools/ipallocator-server.yaml tools/ipallocator-cni.yaml
 ```
-## Spark Watcher
-Spark Wacher is a watcher based on Kubernetes Watcher API that enable to watch spark driver pod to retrieve and store spark application information. There is also a http server to access. You can find more details in [spark-watcher](spark/README.md).
+## Spark Controller
+Spark Controller is a controller based on Kubernetes Informer that enable to watch spark driver pod to retrieve and store spark application information. There is also a http server to access. You can find more details in [spark-controller](spark/README.md).
 ## Requirements
 ### Version
 Kubernetes version v1.9.x+.

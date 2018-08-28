@@ -1,0 +1,23 @@
+{
+  "Enable": [
+    "gofmt",
+    "goimports",
+    "golint",
+    "misspell",
+    "vet"
+  ],
+  "Deadline": "2m",
+  "Sort": [
+    "linter",
+    "severity",
+    "path",
+    "line"
+  ],
+  "Exclude": [
+    ".*\\.pb\\.go",
+    "vendor"
+  ],
+  "EnableGC": true,
+  "WarnUnmatchedDirective": true,
+  "Vendor": true
+}

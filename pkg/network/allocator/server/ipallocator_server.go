@@ -42,14 +42,14 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 	glog.V(1).Infof("start to register, ip is %v, container_id is %s", assignedIP, ip.ContainerID)
 	err = s.IPRegistry.Register(&assignedIP, ip.ContainerID)
 	if err != nil {
-		glog.Errorf("register ip error: %v", err)
+		glog.Errorf("fail to register ip, error is %v", err)
 		return nil, err
 	}
 	glog.V(1).Infof("register ip successfully, ip is %v, container_id is %s", assignedIP, ip.ContainerID)
 
 	_, subnetCIDR, err := net.ParseCIDR(config.Subnet)
 	if err != nil {
-		glog.Errorf("network is error: %v", err)
+		glog.Errorf("fail to parse subnet, error is %v", err)
 		return nil, err
 
 	}
@@ -73,7 +73,7 @@ func (s *IPAllocatorServer) AllocateNext(ctx context.Context, ip *ipallocatorser
 
 // Release releases specified ip.
 func (s *IPAllocatorServer) Release(ctx context.Context, ip *ipallocatorservice.IP) (*ipallocatorservice.Blank, error) {
-	glog.Infof("start to release ip, ip is %v", ip)
+	glog.Infof("start to release ip %v", ip)
 	ipReg, err := s.IPRegistry.GetIP(ip.ContainerID)
 	if err != nil {
 		glog.Errorf("fail to get ip %v, error is %v", ip, err)
@@ -94,7 +94,7 @@ func (s *IPAllocatorServer) Release(ctx context.Context, ip *ipallocatorservice.
 		return nil, err
 	}
 
-	glog.Infof("release and deregister ip successfully, ip is %v", ip)
+	glog.Infof("release and deregister ip successfully, ip is %v, container_id is %v", ip.Ip, ip.ContainerID)
 	return &ipallocatorservice.Blank{}, nil
 }
 
@@ -104,7 +104,7 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 	var ipRegistry allocator.IPRegistry
 	_, ipRange, err := net.ParseCIDR(config.RangeCIDR)
 	if err != nil {
-		glog.Errorf("fail to parse cidr: %v", err)
+		glog.Errorf("fail to parse cidr %v, error is %v", config.RangeCIDR, err)
 		return err
 	}
 	ipAllocator := ipallocator.NewAllocatorCIDRRange(ipRange, func(max int, rangeSpec string) allocator.Interface {
@@ -117,7 +117,7 @@ func newServer(config *Config, server *IPAllocatorServer) error {
 
 	err = rangeRegistry.Init()
 	if err != nil {
-		glog.Errorf("fail to init range registry: %v", err)
+		glog.Errorf("fail to init range registry, error is %v", err)
 		return err
 	}
 
@@ -165,18 +165,18 @@ func main() {
 
 	err := initConfig(*configPath)
 	if err != nil {
-		glog.Fatalf("fail to load config %v", err)
+		glog.Fatalf("fail to load config, error is %v", err)
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", config.Port))
 	if err != nil {
-		glog.Fatalf("fail to listen %v", err)
+		glog.Fatalf("fail to listen on %d, error is %v", config.Port, err)
 	}
 	grpcServer := grpc.NewServer()
 	server := &IPAllocatorServer{}
 	err = newServer(config, server)
 	if err != nil {
-		glog.Fatalf("fail to start server %v", err)
+		glog.Fatalf("fail to start server, configuration is %v, error is %v", config, err)
 	}
 
 	ipallocatorservice.RegisterIPAllocatorServer(grpcServer, server)

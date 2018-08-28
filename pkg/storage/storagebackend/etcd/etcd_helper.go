@@ -22,20 +22,41 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"path"
+	"sync"
+	"os"
 
 	"github.com/TalkingData/hummingbird/pkg/storage"
+	"github.com/TalkingData/hummingbird/pkg/utils"
 	etcd "github.com/coreos/etcd/client"
 	"github.com/golang/glog"
+	"fmt"
+	"time"
+)
+
+const (
+	defaultTTL   = 60
+	defaultTry   = 3
+	deleteAction = "delete"
+	expireAction = "expire"
 )
 
 // Creates a new storage interface from the client
 // TODO: deprecate in favor of storage.Config abstraction over time
 func NewEtcdStorage(client etcd.Client, prefix string, quorum bool) storage.Interface {
+	hostname, err := os.Hostname()
+	if err != nil {
+		return nil
+	}
+
 	return &etcdHelper{
 		etcdMemberAPI: etcd.NewMembersAPI(client),
 		etcdKeysAPI:   etcd.NewKeysAPI(client),
 		pathPrefix:    path.Join("/", prefix),
 		quorum:        quorum,
+		id:            fmt.Sprintf("%v-%v-%v", hostname, os.Getpid(), utils.GetRandomString(8)),
+		lockKey:       path.Join("/", prefix, "lock"),
+		mutex:         new(sync.Mutex),
+		ttl:           defaultTTL,
 	}
 }
 
@@ -47,6 +68,11 @@ type etcdHelper struct {
 	pathPrefix string
 	// if true,  perform quorum read
 	quorum bool
+
+	mutex   *sync.Mutex
+	lockKey string
+	id      string
+	ttl     time.Duration
 }
 
 // Implements storage.Interface.
@@ -157,4 +183,78 @@ func (h *etcdHelper) Update(ctx context.Context, key string, objPtr storage.Obje
 		return err
 	}
 	return nil
+}
+
+// Lock locks m.
+// If the lock is already in use, the calling goroutine
+// blocks until the mutex is available.
+func (h *etcdHelper) Lock(ctx context.Context) (err error) {
+	h.mutex.Lock()
+	for try := 1; try <= defaultTry; try++ {
+		if err = h.lock(ctx); err == nil {
+			return nil
+		}
+	}
+	return err
+}
+
+func (h *etcdHelper) lock(ctx context.Context) (err error) {
+	setOptions := &etcd.SetOptions{
+		PrevExist: etcd.PrevNoExist,
+		TTL:       h.ttl,
+	}
+	resp, err := h.etcdKeysAPI.Set(ctx, h.lockKey, h.id, setOptions)
+	if err == nil {
+		return nil
+	}
+
+	e, ok := err.(etcd.Error)
+	if !ok || e.Code != etcd.ErrorCodeNodeExist {
+		return err
+	}
+
+	// Get the already node's value.
+	resp, err = h.etcdKeysAPI.Get(ctx, h.lockKey, nil)
+	if err != nil {
+		return err
+	}
+
+	watcherOptions := &etcd.WatcherOptions{
+		AfterIndex: resp.Index,
+		Recursive:  false,
+	}
+	watcher := h.etcdKeysAPI.Watcher(h.lockKey, watcherOptions)
+	for {
+		resp, err = watcher.Next(ctx)
+		if err != nil {
+			return err
+		}
+
+		if resp.Action == deleteAction || resp.Action == expireAction {
+			return nil
+		}
+	}
+}
+
+// Unlock unlocks m.
+// It is a run-time error if m is not locked on entry to Unlock.
+//
+// A locked Mutex is not associated with a particular goroutine.
+// It is allowed for one goroutine to lock a Mutex and then
+// arrange for another goroutine to unlock it.
+func (h *etcdHelper) Unlock(ctx context.Context) (err error) {
+	defer h.mutex.Unlock()
+
+	for i := 1; i <= defaultTry; i++ {
+		_, err = h.etcdKeysAPI.Delete(ctx, h.lockKey, nil)
+		if err == nil {
+			return nil
+		}
+
+		e, ok := err.(etcd.Error)
+		if ok && e.Code == etcd.ErrorCodeKeyNotFound {
+			return nil
+		}
+	}
+	return err
 }

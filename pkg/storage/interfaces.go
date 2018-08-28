@@ -29,4 +29,7 @@ type Interface interface {
 	// The returned contents may be delayed, but it is guaranteed that they will
 	// be have at least 'resourceVersion'.
 	Get(ctx context.Context, key string, objPtr Object) error
+
+	Lock(ctx context.Context) error
+	Unlock(ctx context.Context) error
 }

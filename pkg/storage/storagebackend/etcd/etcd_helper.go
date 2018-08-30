@@ -188,52 +188,57 @@ func (h *etcdHelper) Update(ctx context.Context, key string, objPtr storage.Obje
 // Lock locks m.
 // If the lock is already in use, the calling goroutine
 // blocks until the mutex is available.
-func (h *etcdHelper) Lock(ctx context.Context) (err error) {
+func (h *etcdHelper) Lock(ctx context.Context) error {
 	h.mutex.Lock()
 	for try := 1; try <= defaultTry; try++ {
-		if err = h.lock(ctx); err == nil {
+		err := h.setLock(ctx)
+		if err == nil {
 			return nil
 		}
+
+		e, ok := err.(etcd.Error)
+		if !ok || e.Code != etcd.ErrorCodeNodeExist {
+			return err
+		}
+
+		// Get the already node's value.
+		resp, err := h.etcdKeysAPI.Get(ctx, h.lockKey, nil)
+		if err != nil {
+			e, ok := err.(etcd.Error)
+			if !ok || e.Code != etcd.ErrorCodeKeyNotFound {
+				return err
+			}
+			continue
+		}
+
+		watcherOptions := &etcd.WatcherOptions{
+			AfterIndex: resp.Index,
+			Recursive:  false,
+		}
+		watcher := h.etcdKeysAPI.Watcher(h.lockKey, watcherOptions)
+		for {
+			resp, err = watcher.Next(ctx)
+			if err != nil {
+				return err
+			}
+
+			if resp.Action == deleteAction || resp.Action == expireAction {
+				break
+			} else {
+				return fmt.Errorf("fail to get lock due wrong resp %v", resp)
+			}
+		}
 	}
-	return err
+	return fmt.Errorf("fail to get lock due to exceed retry")
 }
 
-func (h *etcdHelper) lock(ctx context.Context) (err error) {
+func (h *etcdHelper) setLock(ctx context.Context) (err error) {
 	setOptions := &etcd.SetOptions{
 		PrevExist: etcd.PrevNoExist,
 		TTL:       h.ttl,
 	}
-	resp, err := h.etcdKeysAPI.Set(ctx, h.lockKey, h.id, setOptions)
-	if err == nil {
-		return nil
-	}
-
-	e, ok := err.(etcd.Error)
-	if !ok || e.Code != etcd.ErrorCodeNodeExist {
-		return err
-	}
-
-	// Get the already node's value.
-	resp, err = h.etcdKeysAPI.Get(ctx, h.lockKey, nil)
-	if err != nil {
-		return err
-	}
-
-	watcherOptions := &etcd.WatcherOptions{
-		AfterIndex: resp.Index,
-		Recursive:  false,
-	}
-	watcher := h.etcdKeysAPI.Watcher(h.lockKey, watcherOptions)
-	for {
-		resp, err = watcher.Next(ctx)
-		if err != nil {
-			return err
-		}
-
-		if resp.Action == deleteAction || resp.Action == expireAction {
-			return nil
-		}
-	}
+	_, err = h.etcdKeysAPI.Set(ctx, h.lockKey, h.id, setOptions)
+	return err
 }
 
 // Unlock unlocks m.
@@ -256,5 +261,5 @@ func (h *etcdHelper) Unlock(ctx context.Context) (err error) {
 			return nil
 		}
 	}
-	return err
+	return fmt.Errorf("fail to unlock due to exceed retry")
 }

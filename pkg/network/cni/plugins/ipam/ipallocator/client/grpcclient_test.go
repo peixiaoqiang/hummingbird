@@ -1,4 +1,4 @@
-package main
+package client
 
 import (
 	"sync"
@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-const testServerIP = "localhost:10000"
+const testServerIP = "172.20.65.3:9000"
 
 func TestAllocateNext(t *testing.T) {
 	client, cleanup, err := getTestClient(t)
@@ -54,7 +54,7 @@ func TestAllocateParallel(t *testing.T) {
 	}
 	defer cleanup()
 
-	count := 20000
+	count := 100
 	wg := sync.WaitGroup{}
 	wg.Add(count)
 

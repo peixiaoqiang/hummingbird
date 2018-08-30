@@ -1,12 +1,12 @@
-package main
+package client
 
 import (
-	"log"
 	"time"
 
 	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
 	"github.com/containernetworking/cni/pkg/skel"
 	"golang.org/x/net/context"
+	"github.com/golang/glog"
 )
 
 func AllocateNext(args *skel.CmdArgs, client ipallocatorservice.IPAllocatorClient) (*ipallocatorservice.IP, error) {
@@ -16,7 +16,7 @@ func AllocateNext(args *skel.CmdArgs, client ipallocatorservice.IPAllocatorClien
 	ip := &ipallocatorservice.IP{ContainerID: args.ContainerID}
 	ip, err := client.AllocateNext(ctx, ip)
 	if err != nil {
-		log.Printf("grpc call failed: %v", err)
+		glog.Errorf("grpc call failed: %v", err)
 		return nil, err
 	}
 

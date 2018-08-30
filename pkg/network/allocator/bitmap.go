@@ -100,9 +100,6 @@ func (r *AllocationBitmap) Allocate(offset int) (bool, error) {
 // AllocateNext reserves one of the items from the pool.
 // (0, false, nil) may be returned if there are no items left.
 func (r *AllocationBitmap) AllocateNext() (int, bool, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
 	next, ok := r.strategy.AllocateBit(r.allocated, r.max, r.count)
 	if !ok {
 		return 0, false, nil

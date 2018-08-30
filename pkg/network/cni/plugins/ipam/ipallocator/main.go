@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/TalkingData/hummingbird/pkg/network/allocator/service"
+	grpcclient "github.com/TalkingData/hummingbird/pkg/network/cni/plugins/ipam/ipallocator/client"
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/current"
@@ -49,7 +50,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err
 	}
 
-	ip, err := AllocateNext(args, client)
+	ip, err := grpcclient.AllocateNext(args, client)
 	if err != nil {
 		log.Printf("grpc add call failed:%v", err)
 		return err
@@ -100,7 +101,7 @@ func cmdDel(args *skel.CmdArgs) error {
 		log.Printf("cannot get the client: %v", err)
 	}
 
-	return Release(args, client)
+	return grpcclient.Release(args, client)
 }
 
 func main() {

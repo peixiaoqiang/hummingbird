@@ -92,11 +92,10 @@ func (e *Etcd) Allocate(offset int) (bool, error) {
 
 // AllocateNext attempts to allocate the next item locally and then in etcd.
 func (e *Etcd) AllocateNext() (int, bool, error) {
-	e.storage.Lock(context.TODO())
+	if err := e.storage.Lock(context.TODO()); err != nil {
+		return 0, false, err
+	}
 	defer e.storage.Unlock(context.TODO())
-
-	e.lock.Lock()
-	defer e.lock.Unlock()
 
 	r, err := e.Get()
 	if err != nil {

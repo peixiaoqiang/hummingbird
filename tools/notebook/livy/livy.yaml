@@ -1,0 +1,65 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: livy
+spec:
+  clusterIP: None
+  selector:
+    app: livy
+  ports:
+  - protocol: TCP
+    port: 12345
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livy
+spec:
+  selector:
+    matchLabels:
+      app: livy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: livy
+    spec:
+      containers:
+      - name: livy
+        image: livy:v0.1.1
+        volumeMounts:
+        - mountPath: /conf
+          name: livy
+        - mountPath: /usr/local/spark/conf
+          name: spark
+      volumes:
+      - configMap: 
+          defaultMode: 420
+          name: livy
+        name: livy
+      - configMap: 
+          defaultMode: 420
+          name: spark
+        name: spark
+
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: livy
+data:
+  livy.conf: |-
+    livy.spark.master = 
+    livy.spark.deploy-mode = 
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: spark
+data:
+  spark-default.conf: |-
+    spark.master                     
+    spark.submit.deployMode          client
+    spark.kubernetes.namespace       
+    spark.kubernetes.container.image 

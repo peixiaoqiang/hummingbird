@@ -2,26 +2,17 @@
 # Author: Tim.Xu
 # Command format: Instruction [arguments / command] ..
 # Base image to use, this must be set as the first line
-FROM jdk:8u162
+FROM spark-hadoop-base
 
 # Maintainer: docker_user <docker_user at email.com> (@docker_user)
 LABEL maintainer="xiaoxubeii@gmail.com"
 
-# Add Hadoop
-ADD ./dist/hadoop /usr/local/hadoop
-# Add Spark
-ADD ./dist/spark /usr/local/spark
-# Add Tini
-ADD ./tini /sbin/tini
-RUN chmod +x /sbin/tini
-
-ADD ./dist/livy /livy
-
-ENV JAVA_HOME /usr/java/default
-ENV SPARK_HOME /usr/local/spark
-ENV HADOOP_HOME /usr/local/hadoop
 ENV LIVY_HOME /livy
-
+ENV LIBDIR ${LIVY_HOME}/jars
+ENV LIVY_CLASSPATH $LIBDIR/*:$LIVY_CONF_DIR
+ENV SPARK_CONF_DIR ${SPARK_HOME}/conf
+ENV HADOOP_CONF_DIR ${HADOOP_HOME}/etc
+ENV  LIVY_CLASSPATH ${LIVY_CLASSPATH}:${SPARK_CONF_DIR}:${HADOOP_CONF_DIR}
 ENTRYPOINT [ "/sbin/tini", "--" ]
 WORKDIR ${LIVY_HOME}
-CMD ["bin/livy-server", "start"]
+CMD ["${JAVA_HOME}/bin/java", "-cp", "${LIVY_CLASSPATH}:$CLASSPATH", "org.apache.livy.server.LivyServer"]

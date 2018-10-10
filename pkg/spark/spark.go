@@ -14,6 +14,8 @@ import (
 	"k8s.io/api/core/v1"
 )
 
+const SparkDriverName string = "spark-kubernetes-driver"
+
 type Job struct {
 	ID                  int    `json:"jobId"`
 	Name                string `json:"name"`
@@ -52,6 +54,7 @@ type Application struct {
 	EndTime          string       `json:"end_time"`
 	Status           string       `json:"status"`
 	Jobs             []Job        `json:"jobs"`
+	DriverStatus     string       `json:"driver_status"`
 }
 
 func (handler *ApplicationHandler) getSparkApplicationID(driverIP string) (string, error) {
@@ -183,6 +186,23 @@ func (handler *ApplicationHandler) OnUpdateStatusPod(pod *v1.Pod) {
 	app.Status = string(pod.Status.Phase)
 	if pod.Status.Phase == v1.PodFailed || pod.Status.Phase == v1.PodSucceeded {
 		app.EndTime = time.Now().Format(time.RFC3339)
+	}
+	for _, s := range pod.Status.ContainerStatuses {
+		if s.Name == SparkDriverName {
+			state := s.State
+			if state.Waiting != nil {
+				app.DriverStatus = "Waiting"
+			} else if state.Running != nil {
+				app.DriverStatus = "Running"
+			} else if state.Terminated != nil {
+				if state.Terminated.ExitCode == 0 {
+					app.DriverStatus = "Succeeded"
+				} else {
+					app.DriverStatus = "Failed"
+				}
+			}
+			break
+		}
 	}
 	err = handler.Storage.CreateOrUpdate(context.TODO(), path.Join(handler.StoragePathPrefix, "applications", pod.Name), app)
 	if err != nil {

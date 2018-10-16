@@ -1,0 +1,49 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: spark-webhook
+  namespace: kube-system
+spec:
+  clusterIP: None
+  selector:
+    app: spark-webhook
+  ports:
+  - protocol: TCP
+    port: 443
+    targetPort: 443
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: spark-webhook
+  namespace: kube-system
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: spark-webhook
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: sz-pg-oam-k8smaster-001.tendcloud.com
+      tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - name: spark-webhook
+        image: ${IMAGE}
+        command: 
+        - spark-webhook 
+        - -alsologtostderr
+        - -v=1
+        - -tls-cert-file=/etc/spark-webhook/certs/cert.pem
+        - -tls-private-key-file=/etc/spark-webhook/certs/key.pem
+        volumeMounts:
+        - name: spark-webhook-certs
+          mountPath: /etc/spark-webhook/certs
+      volumes:
+        - name: spark-webhook-certs
+          secret:
+            secretName: spark-webhook

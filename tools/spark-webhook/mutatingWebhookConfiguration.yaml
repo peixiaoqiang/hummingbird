@@ -1,0 +1,19 @@
+---
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: spark-webhook
+webhooks:
+- name: spark-webhook.kube-system.svc
+  rules:
+  - apiGroups:
+    - ""
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - pods
+  clientConfig:
+    url: ${URL}
+    caBundle: ${CA_BUNDLE}

@@ -73,6 +73,8 @@ $ kubectl apply -f tools/ipallocator-server.yaml tools/ipallocator-cni.yaml
 ```
 ## Spark Controller
 Spark Controller is a controller based on Kubernetes Informer that enable to watch spark driver pod to retrieve and store spark application information. There is also a http server to access. You can find more details in [spark-controller](spark/README.md).
+## Spark Webhook for Kuberentes
+Spark Webhook is a Kubernetes admission webhook service. Admission webhooks are HTTP callbacks that receive admission requests and do something with them. It can dynamically mutate the Spark driver pod. Please find more details in [Dynamic Admission Control](https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#admission-webhooks) and [spark-webhook](spark/webhook/README.md).
 ## Requirements
 ### Version
 Kubernetes version v1.9.x+.

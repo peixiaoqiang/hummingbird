@@ -2,6 +2,15 @@ package storage
 
 import (
 	"context"
+	"errors"
+)
+
+var (
+	ErrKeyExists      = errors.New("key already exists")
+	ErrKeyNoExists    = errors.New("key not exists")
+	ErrWaitMismatch   = errors.New("unexpected wait result")
+	ErrTooManyClients = errors.New("too many clients")
+	ErrNoWatcher      = errors.New("no watcher channel")
 )
 
 type Object interface {

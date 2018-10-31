@@ -32,6 +32,8 @@ func Create(c storagebackend.Config) (storage.Interface, DestroyFunc, error) {
 	switch c.Type {
 	case storagebackend.StorageTypeETCD2:
 		return newETCD2Storage(c)
+	case storagebackend.StorageTypeETCD3:
+		return newETCD3Storage(c)
 	default:
 		return nil, nil, fmt.Errorf("unknown storage type: %s", c.Type)
 	}

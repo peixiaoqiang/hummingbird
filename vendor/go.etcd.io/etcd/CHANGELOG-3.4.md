@@ -3,6 +3,8 @@
 Previous change logs can be found at [CHANGELOG-3.3](https://github.com/etcd-io/etcd/blob/master/CHANGELOG-3.3.md).
 
 
+<hr>
+
 
 ## v3.4.0 (TBD 2019)
 
@@ -178,6 +180,7 @@ Note that any `etcd_debugging_*` metrics are experimental and subject to change.
   - Now, highest buckets collect 0.8192 seconds, 1.6384 seconds, and 3.2768 seconds or more.
 - Add [`etcd_server_is_leader`](https://github.com/etcd-io/etcd/pull/9587) Prometheus metric.
 - Add [`etcd_server_id`](https://github.com/etcd-io/etcd/pull/9998) Prometheus metric.
+- Add [`etcd_cluster_version`](https://github.com/etcd-io/etcd/pull/10257) Prometheus metric.
 - Add [`etcd_server_version`](https://github.com/etcd-io/etcd/pull/8960) Prometheus metric.
   - To replace [Kubernetes `etcd-version-monitor`](https://github.com/etcd-io/etcd/issues/8948).
 - Add [`etcd_server_go_version`](https://github.com/etcd-io/etcd/pull/9957) Prometheus metric.
@@ -303,6 +306,8 @@ See [security doc](https://github.com/etcd-io/etcd/blob/master/Documentation/op-
   - `etcd --logger=zap --log-outputs=a.log` will log server operations in [JSON-encoded format](https://godoc.org/go.uber.org/zap#NewProductionEncoderConfig) and writes logs to the specified file `a.log`.
   - `etcd --logger=zap --log-outputs=a.log,b.log,c.log,stdout` [writes server logs to multiple files `a.log`, `b.log` and `c.log` at the same time](https://github.com/etcd-io/etcd/pull/9579) and outputs to `os.Stderr`, in [JSON-encoded format](https://godoc.org/go.uber.org/zap#NewProductionEncoderConfig).
   - `etcd --logger=zap --log-outputs=/dev/null` will discard all server logs.
+- Add [`etcd --backend-batch-limit`](https://github.com/etcd-io/etcd/pull/10283) flag.
+- Add [`etcd --backend-batch-interval`](https://github.com/etcd-io/etcd/pull/10283) flag.
 - Fix [`mvcc` "unsynced" watcher restore operation](https://github.com/etcd-io/etcd/pull/9281).
   - "unsynced" watcher is watcher that needs to be in sync with events that have happened.
   - That is, "unsynced" watcher is the slow watcher that was requested on old revision.
@@ -367,6 +372,8 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
 - Rename `embed.Config.SnapCount` field to [`embed.Config.SnapshotCount`](https://github.com/etcd-io/etcd/pull/9745), to be consistent with the flag name `etcd --snapshot-count`.
 - Rename [**`embed.Config.LogOutput`** to **`embed.Config.LogOutputs`**](https://github.com/etcd-io/etcd/pull/9624) to support multiple log outputs.
 - Change [**`embed.Config.LogOutputs`** type from `string` to `[]string`](https://github.com/etcd-io/etcd/pull/9579) to support multiple log outputs.
+- Add [`embed.Config.BackendBatchLimit`](https://github.com/etcd-io/etcd/pull/10283) field.
+- Add [`embed.Config.BackendBatchInterval`](https://github.com/etcd-io/etcd/pull/10283) field.
 
 ### Package `integration`
 
@@ -448,6 +455,7 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
 - Add [`raft.Config.MaxUncommittedEntriesSize`](https://github.com/etcd-io/etcd/pull/10167) to limit the total size of the uncommitted entries in bytes.
   - Once exceeded, raft returns `raft.ErrProposalDropped` error.
   - Prevent [unbounded Raft log growth](https://github.com/cockroachdb/cockroach/issues/27772).
+  - There was a bug in [PR#10167](https://github.com/etcd-io/etcd/pull/10167) but fixed via [PR#10199](https://github.com/etcd-io/etcd/pull/10199).
 - Add [`raft.Ready.CommittedEntries` pagination using `raft.Config.MaxSizePerMsg`](https://github.com/etcd-io/etcd/pull/9982).
   - This prevents out-of-memory errors if the raft log has become very large and commits all at once.
   - Fix [correctness bug in CommittedEntries pagination](https://github.com/etcd-io/etcd/pull/10063).
@@ -464,4 +472,7 @@ Note: **v3.5 will deprecate `etcd --log-package-levels` flag for `capnslog`**; `
 
 - Require [*Go 1.11+*](https://github.com/etcd-io/etcd/pull/10045).
 - Compile with [*Go 1.11*](https://golang.org/doc/devel/release.html#go1.11).
+
+
+<hr>
 

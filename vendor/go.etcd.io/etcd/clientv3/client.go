@@ -27,6 +27,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/grpc-ecosystem/go-grpc-middleware/util/backoffutils"
 	"go.etcd.io/etcd/clientv3/balancer"
 	"go.etcd.io/etcd/clientv3/balancer/picker"
@@ -477,7 +479,7 @@ func newClient(cfg *Config) (*Client, error) {
 
 	// Prepare a 'endpoint://<unique-client-id>/' resolver for the client and create a endpoint target to pass
 	// to dial so the client knows to use this resolver.
-	client.resolverGroup, err = endpoint.NewResolverGroup(fmt.Sprintf("client-%s", strconv.FormatInt(time.Now().UnixNano(), 36)))
+	client.resolverGroup, err = endpoint.NewResolverGroup(fmt.Sprintf("client-%s", uuid.New().String()))
 	if err != nil {
 		client.cancel()
 		return nil, err
@@ -489,7 +491,7 @@ func newClient(cfg *Config) (*Client, error) {
 	}
 	dialEndpoint := cfg.Endpoints[0]
 
-	// Use an provided endpoint target so that for https:// without any tls config given, then
+	// Use a provided endpoint target so that for https:// without any tls config given, then
 	// grpc will assume the certificate server name is the endpoint host.
 	conn, err := client.dialWithBalancer(dialEndpoint, grpc.WithBalancerName(roundRobinBalancerName))
 	if err != nil {

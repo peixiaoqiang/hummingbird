@@ -267,11 +267,30 @@ func TestProgressResume(t *testing.T) {
 	}
 }
 
+func TestProgressLeader(t *testing.T) {
+	r := newTestRaft(1, []uint64{1, 2}, 5, 1, NewMemoryStorage())
+	r.becomeCandidate()
+	r.becomeLeader()
+	r.prs[2].becomeReplicate()
+
+	// Send proposals to r1. The first 5 entries should be appended to the log.
+	propMsg := pb.Message{From: 1, To: 1, Type: pb.MsgProp, Entries: []pb.Entry{{Data: []byte("foo")}}}
+	for i := 0; i < 5; i++ {
+		if pr := r.prs[r.id]; pr.State != ProgressStateReplicate || pr.Match != uint64(i+1) || pr.Next != pr.Match+1 {
+			t.Errorf("unexpected progress %v", pr)
+		}
+		if err := r.Step(propMsg); err != nil {
+			t.Fatalf("proposal resulted in error: %v", err)
+		}
+	}
+}
+
 // TestProgressResumeByHeartbeatResp ensures raft.heartbeat reset progress.paused by heartbeat response.
 func TestProgressResumeByHeartbeatResp(t *testing.T) {
 	r := newTestRaft(1, []uint64{1, 2}, 5, 1, NewMemoryStorage())
 	r.becomeCandidate()
 	r.becomeLeader()
+
 	r.prs[2].Paused = true
 
 	r.Step(pb.Message{From: 1, To: 1, Type: pb.MsgBeat})
@@ -955,7 +974,7 @@ func TestCommitWithoutNewTermEntry(t *testing.T) {
 	// network recovery
 	tt.recover()
 
-	// elect 1 as the new leader with term 2
+	// elect 2 as the new leader with term 2
 	// after append a ChangeTerm entry from the current term, all entries
 	// should be committed
 	tt.send(pb.Message{From: 2, To: 2, Type: pb.MsgHup})
@@ -1216,8 +1235,7 @@ func TestProposal(t *testing.T) {
 	for j, tt := range tests {
 		send := func(m pb.Message) {
 			defer func() {
-				// only recover is we expect it to panic so
-				// panics we don't expect go up.
+				// only recover if we expect it to panic (success==false)
 				if !tt.success {
 					e := recover()
 					if e != nil {
@@ -1230,7 +1248,7 @@ func TestProposal(t *testing.T) {
 
 		data := []byte("somedata")
 
-		// promote 0 the leader
+		// promote 1 to become leader
 		send(pb.Message{From: 1, To: 1, Type: pb.MsgHup})
 		send(pb.Message{From: 1, To: 1, Type: pb.MsgProp, Entries: []pb.Entry{{Data: data}}})
 
@@ -1525,7 +1543,7 @@ func TestHandleHeartbeatResp(t *testing.T) {
 
 // TestRaftFreesReadOnlyMem ensures raft will free read request from
 // readOnly readIndexQueue and pendingReadIndex map.
-// related issue: https://go.etcd.io/etcd/issues/7571
+// related issue: https://github.com/etcd-io/etcd/issues/7571
 func TestRaftFreesReadOnlyMem(t *testing.T) {
 	sm := newTestRaft(1, []uint64{1, 2}, 5, 1, NewMemoryStorage())
 	sm.becomeCandidate()
@@ -2587,7 +2605,7 @@ func TestLeaderAppResp(t *testing.T) {
 }
 
 // When the leader receives a heartbeat tick, it should
-// send a MsgApp with m.Index = 0, m.LogTerm=0 and empty entries.
+// send a MsgHeartbeat with m.Index = 0, m.LogTerm=0 and empty entries.
 func TestBcastBeat(t *testing.T) {
 	offset := uint64(1000)
 	// make a state machine with log.offset = 1000

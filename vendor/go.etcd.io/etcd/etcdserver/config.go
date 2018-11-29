@@ -55,6 +55,11 @@ type ServerConfig struct {
 	MaxSnapFiles uint
 	MaxWALFiles  uint
 
+	// BackendBatchInterval is the maximum time before commit the backend transaction.
+	BackendBatchInterval time.Duration
+	// BackendBatchLimit is the maximum operations before commit the backend transaction.
+	BackendBatchLimit int
+
 	InitialPeerURLsMap  types.URLsMap
 	InitialClusterToken string
 	NewCluster          bool
@@ -96,7 +101,7 @@ type ServerConfig struct {
 	//
 	// If single-node, it advances ticks regardless.
 	//
-	// See https://go.etcd.io/etcd/issues/9333 for more detail.
+	// See https://github.com/etcd-io/etcd/issues/9333 for more detail.
 	InitialElectionTickAdvance bool
 
 	BootstrapTimeout time.Duration

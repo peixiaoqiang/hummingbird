@@ -99,7 +99,9 @@ func (t *TaskManagerImpl) Run(task model.Task, finish chan<- struct{}) error {
 	task.CreateTime = time.Now().String()
 	err := t.resourcePool.Allocate(&task)
 	if err != nil {
-		finish <- struct{}{}
+		if finish != nil {
+			finish <- struct{}{}
+		}
 		return t.waiting.Enqueue(&task)
 	}
 	task.StartTime = time.Now().String()
@@ -112,7 +114,6 @@ func (t *TaskManagerImpl) Run(task model.Task, finish chan<- struct{}) error {
 	glog.V(1).Infof("start to run task: %v", task)
 	t.run(task, finish)
 	return nil
-
 }
 
 func (t *TaskManagerImpl) Pick(finish chan<- struct{}) error {
@@ -121,22 +122,7 @@ func (t *TaskManagerImpl) Pick(finish chan<- struct{}) error {
 	if err != nil {
 		return err
 	}
-	if task != nil {
-		err := t.resourcePool.Allocate(task)
-		if err != nil {
-			glog.V(1).Infof("fail to fit task: %v, reason: %v", task.Name, err)
-			return err
-		}
-		task, err := t.waiting.Dequeue()
-		glog.V(1).Infof("dequeue task: %v", task.Name)
-		if err != nil {
-			return err
-		}
-		t.run(*task, finish)
-		return nil
-	}
-	glog.V(1).Info("no task to fit")
-	return nil
+	return t.Run(*task, finish)
 }
 
 func (t *TaskManagerImpl) run(task model.Task, finish chan<- struct{}) {

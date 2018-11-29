@@ -25,6 +25,7 @@ type TaskEngine interface {
 	Submit(model.Task) error
 	GetTaskState(*model.Task) string
 }
+
 type SparkOnK8SEngine struct {
 	NameSpace         string
 	DeployMode        string

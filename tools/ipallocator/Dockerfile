@@ -1,5 +1,5 @@
 FROM golang:1.10.2
-WORKDIR /go/src/github.com/TalkingData/hummingbird
+WORKDIR $GOPATH/src/github.com/TalkingData/hummingbird/
 COPY src.tgz .
 RUN tar zxvf src.tgz
 RUN go build -o ipallocator_server github.com/TalkingData/hummingbird/pkg/network/allocator/server
